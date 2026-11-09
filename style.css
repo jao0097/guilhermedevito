@@ -1,0 +1,211 @@
+/* SuperLista V2 - Estilos Modernos e Temas */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --font-main: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+}
+
+/* Temas */
+body[data-theme="sunset"] {
+  --bg-page: #fff8f5;
+  --bg-card: #ffffff;
+  --border-color: #fee2e2;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --theme-gradient: linear-gradient(135deg, #f43f5e 0%, #fb923c 100%);
+  --theme-accent: #f43f5e;
+  --theme-accent-soft: #ffe4e6;
+  --theme-card-hover: #fff1f2;
+}
+
+body[data-theme="emerald"] {
+  --bg-page: #f0fdf4;
+  --bg-card: #ffffff;
+  --border-color: #dcfce7;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --theme-gradient: linear-gradient(135deg, #059669 0%, #10b981 50%, #34d399 100%);
+  --theme-accent: #059669;
+  --theme-accent-soft: #d1fae5;
+  --theme-card-hover: #ecfdf5;
+}
+
+body[data-theme="violet"] {
+  --bg-page: #faf5ff;
+  --bg-card: #ffffff;
+  --border-color: #f3e8ff;
+  --text-primary: #1e1b4b;
+  --text-secondary: #6b7280;
+  --theme-gradient: linear-gradient(135deg, #7c3aed 0%, #a855f7 50%, #c084fc 100%);
+  --theme-accent: #7c3aed;
+  --theme-accent-soft: #ede9fe;
+  --theme-card-hover: #f5f3ff;
+}
+
+body[data-theme="dark"] {
+  --bg-page: #0f172a;
+  --bg-card: #1e293b;
+  --border-color: #334155;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --theme-gradient: linear-gradient(135deg, #334155 0%, #1e293b 100%);
+  --theme-accent: #38bdf8;
+  --theme-accent-soft: #0c4a6e;
+  --theme-card-hover: #243248;
+}
+
+body[data-theme="nordic"] {
+  --bg-page: #f8fafc;
+  --bg-card: #ffffff;
+  --border-color: #e2e8f0;
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  --theme-gradient: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+  --theme-accent: #2563eb;
+  --theme-accent-soft: #dbeafe;
+  --theme-card-hover: #eff6ff;
+}
+
+body {
+  background-color: var(--bg-page);
+  color: var(--text-primary);
+  font-family: var(--font-main);
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+.theme-card {
+  background-color: var(--bg-card);
+  border-color: var(--border-color);
+}
+
+.theme-header {
+  background: var(--theme-gradient);
+}
+
+.theme-accent-btn {
+  background-color: var(--theme-accent);
+  color: #ffffff;
+}
+.theme-accent-btn:hover {
+  filter: brightness(1.08);
+}
+
+.theme-input {
+  background-color: var(--bg-card);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+.theme-input:focus {
+  border-color: var(--theme-accent);
+  box-shadow: 0 0 0 3px var(--theme-accent-soft);
+}
+
+/* Badges de Categoria / Corredores */
+.badge-hortifruti { background-color: #dcfce7; color: #166534; border-color: #bbf7d0; }
+.badge-padaria { background-color: #fef3c7; color: #92400e; border-color: #fde68a; }
+.badge-carnes { background-color: #fee2e2; color: #991b1b; border-color: #fecaca; }
+.badge-laticinios { background-color: #e0f2fe; color: #075985; border-color: #bae6fd; }
+.badge-mercearia { background-color: #ffedd5; color: #9a3412; border-color: #fed7aa; }
+.badge-bebidas { background-color: #f3e8ff; color: #6b21a8; border-color: #e9d5ff; }
+.badge-limpeza { background-color: #cffafe; color: #155e75; border-color: #a5f3fc; }
+.badge-pet { background-color: #fae8ff; color: #86198f; border-color: #f5d0fe; }
+.badge-outros { background-color: #f1f5f9; color: #475569; border-color: #e2e8f0; }
+
+body[data-theme="dark"] .badge-hortifruti { background-color: #14532d; color: #86efac; border-color: #166534; }
+body[data-theme="dark"] .badge-padaria { background-color: #78350f; color: #fde68a; border-color: #92400e; }
+body[data-theme="dark"] .badge-carnes { background-color: #7f1d1d; color: #fca5a5; border-color: #991b1b; }
+body[data-theme="dark"] .badge-laticinios { background-color: #0c4a6e; color: #7dd3fc; border-color: #0369a1; }
+body[data-theme="dark"] .badge-mercearia { background-color: #7c2d12; color: #fdba74; border-color: #9a3412; }
+body[data-theme="dark"] .badge-bebidas { background-color: #581c87; color: #d8b4fe; border-color: #6b21a8; }
+body[data-theme="dark"] .badge-limpeza { background-color: #164e63; color: #67e8f9; border-color: #155e75; }
+body[data-theme="dark"] .badge-pet { background-color: #701a75; color: #f0abfc; border-color: #86198f; }
+body[data-theme="dark"] .badge-outros { background-color: #334155; color: #cbd5e1; border-color: #475569; }
+
+/* Item Card Interactions */
+.item-card {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.item-card:hover {
+  transform: translateY(-1px);
+}
+.item-card.is-checked {
+  opacity: 0.65;
+  background-color: rgba(148, 163, 184, 0.08);
+}
+.item-card.is-checked .item-title {
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+/* Modo Mercado (In-Store Focus Mode) */
+#shopping-mode-overlay {
+  background-color: #090d16;
+  color: #f8fafc;
+}
+
+.shopping-card {
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.15s ease, background-color 0.2s ease, opacity 0.2s ease;
+}
+.shopping-card:active {
+  transform: scale(0.98);
+}
+.shopping-card.is-checked {
+  background-color: #162032 !important;
+  opacity: 0.5;
+  border-color: #26354a !important;
+}
+.shopping-card.is-checked .shopping-text {
+  text-decoration: line-through;
+  color: #64748b;
+}
+
+/* Pulsação do Botão de Voz */
+@keyframes voice-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
+  70% { box-shadow: 0 0 0 12px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+.recording-active {
+  background-color: #ef4444 !important;
+  color: #ffffff !important;
+  animation: voice-pulse 1.4s infinite;
+}
+
+/* Sugestões Rápidas (Chips) */
+.suggestion-chip {
+  transition: all 0.15s ease;
+}
+.suggestion-chip:hover {
+  transform: translateY(-1px);
+  filter: brightness(0.95);
+}
+
+/* Confetes Canvas */
+#confetti-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* Media Query para Impressão */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  header, #add-item-section, .no-print, button, #shopping-mode-overlay {
+    display: none !important;
+  }
+  .theme-card {
+    border: 1px solid #ccc !important;
+    box-shadow: none !important;
+    page-break-inside: avoid;
+  }
+}

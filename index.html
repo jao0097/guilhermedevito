@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#f43f5e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>SuperLista Pro 🛒 — Gerenciador Inteligente de Compras</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-theme="sunset" class="min-h-screen antialiased selection:bg-rose-500 selection:text-white">
+
+  <!-- Canvas para Chuva de Confetes ao Concluir -->
+  <canvas id="confetti-canvas"></canvas>
+
+  <div class="max-w-4xl mx-auto px-3 sm:px-6 py-6 pb-24">
+    
+    <!-- Cabeçalho Principal -->
+    <header class="theme-header rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden mb-6 transition-all duration-300">
+      <div class="absolute -right-8 -bottom-8 text-white/10 text-9xl pointer-events-none select-none">
+        <i class="fa-solid fa-cart-shopping"></i>
+      </div>
+
+      <div class="relative z-10">
+        <!-- Barra Superior: Logo + Controles de Lista e Configurações -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          
+          <div class="flex items-center space-x-3.5">
+            <div class="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-2xl shadow-inner border border-white/20">
+              <i class="fa-solid fa-basket-shopping text-white"></i>
+            </div>
+            <div>
+              <div class="flex items-center space-x-2">
+                <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">SuperLista <span class="text-xs bg-white/25 px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider">Pro</span></h1>
+              </div>
+              <p class="text-white/85 text-xs sm:text-sm font-medium">Compras organizadas com teto de gastos e modo mercado</p>
+            </div>
+          </div>
+
+          <!-- Ações de topo: Seletor de Lista, Modo Mercado e Controles -->
+          <div class="flex flex-wrap items-center gap-2">
+            
+            <!-- Botão de Abertura do Modo Mercado -->
+            <button id="btn-open-shopping-mode" class="bg-white text-slate-900 hover:bg-white/90 active:scale-95 transition-all text-xs sm:text-sm font-bold px-3.5 py-2 rounded-xl flex items-center gap-2 shadow-lg shadow-black/10">
+              <i class="fa-solid fa-cart-arrow-down text-rose-500"></i>
+              <span>Modo Mercado</span>
+            </button>
+
+            <!-- Seletor de Listas Múltiplas -->
+            <div class="relative flex items-center">
+              <select id="list-selector" title="Alternar Lista" class="bg-white/20 hover:bg-white/30 text-white text-xs sm:text-sm font-semibold px-3 py-2 pr-8 rounded-xl border border-white/30 backdrop-blur-md cursor-pointer focus:outline-none transition-all appearance-none">
+                <!-- Preenchido dinamicamente -->
+              </select>
+              <i class="fa-solid fa-chevron-down absolute right-2.5 text-xs pointer-events-none opacity-80"></i>
+            </div>
+
+            <!-- Botão Adicionar/Gerenciar Listas -->
+            <button id="btn-manage-lists" title="Gerenciar Listas" class="bg-white/20 hover:bg-white/30 text-white text-xs p-2.5 rounded-xl border border-white/25 backdrop-blur-md active:scale-95 transition-all">
+              <i class="fa-solid fa-folder-plus text-sm"></i>
+            </button>
+
+            <!-- Menu Exportar e Backup -->
+            <div class="relative">
+              <button id="btn-export-menu" title="Compartilhar e Backup" class="bg-white/20 hover:bg-white/30 text-white text-xs p-2.5 rounded-xl border border-white/25 backdrop-blur-md active:scale-95 transition-all">
+                <i class="fa-solid fa-arrow-up-from-bracket text-sm"></i>
+              </button>
+              
+              <!-- Dropdown Exportar -->
+              <div id="export-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-700 py-2 z-50 text-xs">
+                <button id="btn-export-whatsapp" class="w-full text-left px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2">
+                  <i class="fa-brands fa-whatsapp text-emerald-500 text-sm"></i> Copiar para WhatsApp
+                </button>
+                <button id="btn-export-csv" class="w-full text-left px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2">
+                  <i class="fa-solid fa-file-csv text-blue-500 text-sm"></i> Exportar Planilha (CSV)
+                </button>
+                <button id="btn-print-list" class="w-full text-left px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2">
+                  <i class="fa-solid fa-print text-purple-500 text-sm"></i> Imprimir Lista
+                </button>
+                <hr class="my-1 border-slate-200 dark:border-slate-700">
+                <button id="btn-open-backup-modal" class="w-full text-left px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2">
+                  <i class="fa-solid fa-database text-amber-500 text-sm"></i> Backup JSON (Exportar/Importar)
+                </button>
+              </div>
+            </div>
+
+            <!-- Alternar Som -->
+            <button id="btn-toggle-sound" title="Ativar/Desativar Sons" class="bg-white/20 hover:bg-white/30 text-white text-xs p-2.5 rounded-xl border border-white/25 backdrop-blur-md active:scale-95 transition-all">
+              <i id="sound-icon" class="fa-solid fa-volume-high text-sm"></i>
+            </button>
+
+            <!-- Seletor de Tema -->
+            <select id="theme-selector" title="Tema Visual" class="bg-white/20 hover:bg-white/30 text-white text-xs px-2.5 py-2 rounded-xl border border-white/25 backdrop-blur-md cursor-pointer focus:outline-none transition-all">
+              <option value="sunset" class="text-slate-800" selected>🌅 Pôr do Sol</option>
+              <option value="emerald" class="text-slate-800">🌿 Esmeralda</option>
+              <option value="nordic" class="text-slate-800">🌊 Nórdico</option>
+              <option value="violet" class="text-slate-800">🍇 Violeta</option>
+              <option value="dark" class="text-slate-800">🌙 Escuro OLED</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Painel de Métricas e Teto de Gastos -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs sm:text-sm">
+          <!-- Card 1: Itens / No Carrinho -->
+          <div class="bg-black/20 backdrop-blur-md rounded-2xl p-3 border border-white/10">
+            <span class="text-white/80 block text-[11px] font-semibold uppercase tracking-wider mb-1">Itens</span>
+            <div class="flex items-baseline gap-1.5">
+              <span id="metric-checked-count" class="text-xl sm:text-2xl font-black">0</span>
+              <span class="text-white/70 text-xs">de <span id="metric-total-count" class="font-bold">0</span></span>
+            </div>
+          </div>
+
+          <!-- Card 2: Progresso -->
+          <div class="bg-black/20 backdrop-blur-md rounded-2xl p-3 border border-white/10">
+            <span class="text-white/80 block text-[11px] font-semibold uppercase tracking-wider mb-1">Progresso</span>
+            <div class="flex items-baseline gap-1">
+              <span id="metric-progress-percent" class="text-xl sm:text-2xl font-black">0%</span>
+            </div>
+          </div>
+
+          <!-- Card 3: Total no Carrinho -->
+          <div class="bg-black/20 backdrop-blur-md rounded-2xl p-3 border border-white/10">
+            <span class="text-white/80 block text-[11px] font-semibold uppercase tracking-wider mb-1">Gasto no Carrinho</span>
+            <div class="flex items-baseline gap-1">
+              <span id="metric-actual-spent" class="text-lg sm:text-xl font-black">R$ 0,00</span>
+            </div>
+          </div>
+
+          <!-- Card 4: Teto de Gastos (Orçamento) -->
+          <div class="bg-black/20 backdrop-blur-md rounded-2xl p-3 border border-white/10 relative group">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-white/80 text-[11px] font-semibold uppercase tracking-wider">Teto de Gastos</span>
+              <button id="btn-edit-budget-quick" title="Alterar teto" class="text-white/70 hover:text-white text-xs">
+                <i class="fa-solid fa-pen-to-square"></i>
+              </button>
+            </div>
+            <div class="flex items-baseline gap-1">
+              <span id="metric-budget-limit" class="text-lg sm:text-xl font-black">R$ 0,00</span>
+            </div>
+            <!-- Badge de Alerta de Orçamento -->
+            <div id="budget-alert-badge" class="hidden mt-1 text-[10px] font-bold px-2 py-0.5 rounded-full inline-block"></div>
+          </div>
+        </div>
+
+        <!-- Barra de Progresso Visual de Conclusão -->
+        <div class="mt-4">
+          <div class="w-full bg-black/25 h-2.5 rounded-full overflow-hidden p-0.5">
+            <div id="main-progress-bar" class="h-full bg-white rounded-full transition-all duration-300 w-0"></div>
+          </div>
+        </div>
+
+      </div>
+    </header>
+
+    <!-- Seção de Entrada Inteligente de Itens (Quick-Add & Voz) -->
+    <section id="add-item-section" class="theme-card rounded-3xl p-5 shadow-sm border mb-6 transition-all">
+      <form id="quick-add-form" class="space-y-3">
+        <div class="flex flex-col sm:flex-row items-center gap-2">
+          
+          <!-- Input com Parser em Tempo Real -->
+          <div class="relative w-full">
+            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none opacity-40">
+              <i class="fa-solid fa-wand-magic-sparkles text-sm"></i>
+            </span>
+            <input 
+              type="text" 
+              id="item-quick-input" 
+              placeholder="Digite ou fale: Ex: '1,5 kg de tomate', '3x sabonete', 'café'..."
+              autocomplete="off"
+              required
+              class="theme-input w-full pl-10 pr-12 py-3 rounded-2xl text-sm font-medium border transition-all focus:outline-none"
+            />
+            
+            <!-- Botão de Microfone (Web Speech API) -->
+            <button 
+              type="button" 
+              id="btn-voice-input" 
+              title="Falar item por comando de voz" 
+              class="absolute inset-y-1.5 right-1.5 px-3 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs flex items-center justify-center transition-all cursor-pointer"
+            >
+              <i class="fa-solid fa-microphone text-sm"></i>
+            </button>
+          </div>
+
+          <!-- Botões Adicionar e Expandir Detalhes -->
+          <div class="flex items-center gap-2 w-full sm:w-auto">
+            <button 
+              type="button" 
+              id="btn-toggle-details" 
+              title="Ajustar preço, unidade ou corredor manualmente" 
+              class="px-3.5 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 transition-all whitespace-nowrap"
+            >
+              <i class="fa-solid fa-sliders"></i>
+              <span class="hidden md:inline">Detalhes</span>
+            </button>
+
+            <button 
+              type="submit" 
+              class="theme-accent-btn w-full sm:w-auto px-5 py-3 rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-md active:scale-95 transition-all whitespace-nowrap"
+            >
+              <i class="fa-solid fa-plus"></i>
+              <span>Adicionar</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Painel Expansível de Detalhes Manuais -->
+        <div id="details-panel" class="hidden pt-3 border-t border-slate-100 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
+          <div>
+            <label class="block font-semibold opacity-75 mb-1">Quantidade</label>
+            <input type="number" id="detail-qty" step="any" min="0.1" value="1" class="theme-input w-full p-2 rounded-xl border focus:outline-none">
+          </div>
+          <div>
+            <label class="block font-semibold opacity-75 mb-1">Unidade</label>
+            <select id="detail-unit" class="theme-input w-full p-2 rounded-xl border focus:outline-none">
+              <option value="un">un (Unidade)</option>
+              <option value="kg">kg (Quilograma)</option>
+              <option value="g">g (Grama)</option>
+              <option value="L">L (Litro)</option>
+              <option value="ml">ml (Mililitro)</option>
+              <option value="pct">pct (Pacote)</option>
+              <option value="cx">cx (Caixa)</option>
+              <option value="dz">dz (Dúzia)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-semibold opacity-75 mb-1">Preço Est. (R$)</label>
+            <input type="number" id="detail-price" step="0.01" min="0" placeholder="0,00" class="theme-input w-full p-2 rounded-xl border focus:outline-none">
+          </div>
+          <div>
+            <label class="block font-semibold opacity-75 mb-1">Corredor / Categoria</label>
+            <select id="detail-category" class="theme-input w-full p-2 rounded-xl border focus:outline-none">
+              <option value="Hortifruti">🍎 Hortifruti</option>
+              <option value="Padaria">🍞 Padaria</option>
+              <option value="Carnes & Aves">🥩 Carnes & Aves</option>
+              <option value="Laticínios & Ovos">🧀 Laticínios & Ovos</option>
+              <option value="Mercearia">📦 Mercearia</option>
+              <option value="Bebidas">🥤 Bebidas</option>
+              <option value="Limpeza & Higiene">🧼 Limpeza & Higiene</option>
+              <option value="Pet & Bazar">🐾 Pet & Bazar</option>
+              <option value="Outros">🛒 Outros</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Chips de Sugestões Rápidas -->
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 no-scrollbar text-xs">
+          <span class="opacity-50 text-[11px] whitespace-nowrap"><i class="fa-solid fa-bolt text-amber-500 mr-1"></i>Rápido:</span>
+          <button type="button" class="suggestion-chip px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 whitespace-nowrap" data-item="Pão Francês">🍞 Pão</button>
+          <button type="button" class="suggestion-chip px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 whitespace-nowrap" data-item="2L de Leite Integral">🥛 Leite</button>
+          <button type="button" class="suggestion-chip px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 whitespace-nowrap" data-item="Café em pó 500g">☕ Café</button>
+          <button type="button" class="suggestion-chip px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 whitespace-nowrap" data-item="1 dz de Ovos Brancos">🥚 Ovos</button>
+          <button type="button" class="suggestion-chip px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 whitespace-nowrap" data-item="Arroz Branco 5kg">🍚 Arroz</button>
+          <button type="button" class="suggestion-chip px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 whitespace-nowrap" data-item="Feijão Carioca 1kg">🫘 Feijão</button>
+          <button type="button" class="suggestion-chip px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 whitespace-nowrap" data-item="1kg de Banana Prata">🍌 Banana</button>
+          <button type="button" class="suggestion-chip px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 whitespace-nowrap" data-item="Detergente Neutro">🧼 Detergente</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Barra de Filtros, Visualização e Busca -->
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-5">
+      
+      <!-- Abas de Status -->
+      <div class="flex items-center bg-slate-200/60 dark:bg-slate-800/80 p-1 rounded-2xl text-xs font-semibold">
+        <button class="status-tab px-3 py-1.5 rounded-xl bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white transition-all" data-status="all">Todos</button>
+        <button class="status-tab px-3 py-1.5 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all" data-status="pending">Pendentes</button>
+        <button class="status-tab px-3 py-1.5 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all" data-status="checked">No Carrinho</button>
+      </div>
+
+      <!-- Alternador de Visão (Corredor vs Lista Simples) e Busca -->
+      <div class="flex items-center gap-2">
+        
+        <!-- Toggle Modo de Agrupamento -->
+        <button id="btn-toggle-view-mode" title="Alternar visão por corredores ou lista simples" class="px-3 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-1.5 transition-all">
+          <i id="view-mode-icon" class="fa-solid fa-layer-group"></i>
+          <span id="view-mode-label" class="hidden sm:inline">Por Corredor</span>
+        </button>
+
+        <!-- Campo de Busca -->
+        <div class="relative flex-1 sm:w-56">
+          <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none opacity-40">
+            <i class="fa-solid fa-magnifying-glass text-xs"></i>
+          </span>
+          <input 
+            type="text" 
+            id="search-input" 
+            placeholder="Filtrar itens..." 
+            class="theme-input w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border focus:outline-none"
+          />
+        </div>
+
+        <!-- Botão Limpar Comprados -->
+        <button id="btn-clear-checked" title="Limpar itens marcados como comprados" class="px-3 py-2 rounded-xl text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all">
+          <i class="fa-solid fa-trash-can"></i>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Lista de Itens Container -->
+    <main id="items-container" class="space-y-6">
+      <!-- Preenchido dinamicamente via JS -->
+    </main>
+
+    <!-- Estado Vazio -->
+    <div id="empty-state" class="hidden text-center py-16 px-4">
+      <div class="w-20 h-20 mx-auto mb-4 bg-slate-100 dark:bg-slate-800 rounded-3xl flex items-center justify-center text-3xl text-slate-400">
+        <i class="fa-solid fa-basket-shopping"></i>
+      </div>
+      <h3 class="text-base font-bold text-slate-700 dark:text-slate-200 mb-1">Nenhum item encontrado</h3>
+      <p class="text-xs text-slate-500 max-w-sm mx-auto">Sua lista está limpa ou nenhum produto coincide com a sua busca atual. Adicione um novo item acima!</p>
+    </div>
+
+  </div>
+
+  <!-- OVERLAY: MODO MERCADO (In-Store Shopping Focus Mode) -->
+  <div id="shopping-mode-overlay" class="hidden fixed inset-0 z-50 overflow-y-auto flex flex-col">
+    <!-- Top Bar do Modo Mercado -->
+    <div class="bg-slate-900 border-b border-slate-800 px-4 py-4 flex items-center justify-between sticky top-0 z-20">
+      <div class="flex items-center space-x-3">
+        <div class="w-9 h-9 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center text-lg">
+          <i class="fa-solid fa-cart-shopping"></i>
+        </div>
+        <div>
+          <h2 id="shopping-mode-title" class="text-base font-bold text-white tracking-tight">Modo Mercado</h2>
+          <div class="flex items-center gap-2 text-[11px] text-slate-400">
+            <span id="wake-lock-status"><i class="fa-solid fa-bolt text-amber-400 mr-1"></i>Tela Sempre Ativa</span>
+            <span>•</span>
+            <span id="shopping-items-ratio">0/0 pegos</span>
+          </div>
+        </div>
+      </div>
+
+      <button id="btn-exit-shopping-mode" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-all">
+        <i class="fa-solid fa-xmark mr-1.5"></i> Sair do Modo
+      </button>
+    </div>
+
+    <!-- Conteúdo Central dos Itens do Modo Mercado -->
+    <div class="flex-1 max-w-3xl w-full mx-auto p-4 pb-28">
+      <div id="shopping-items-list" class="space-y-6">
+        <!-- Renderizado dinamicamente -->
+      </div>
+    </div>
+
+    <!-- Barra Inferior Fixa do Modo Mercado -->
+    <div class="fixed bottom-0 inset-x-0 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 p-4 z-20">
+      <div class="max-w-3xl mx-auto flex items-center justify-between">
+        <div>
+          <span class="text-[11px] uppercase font-bold text-slate-400 block">Total no Carrinho</span>
+          <div class="flex items-baseline gap-2">
+            <span id="shopping-total-spent" class="text-xl sm:text-2xl font-black text-white">R$ 0,00</span>
+            <span id="shopping-budget-target" class="text-xs text-slate-400 font-medium">/ Teto: R$ 0,00</span>
+          </div>
+        </div>
+
+        <button id="btn-shopping-finish" class="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs sm:text-sm shadow-lg shadow-emerald-500/20 active:scale-95 transition-all">
+          <i class="fa-solid fa-check-double mr-1.5"></i> Concluir Compra
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Gerenciamento de Listas Múltiplas -->
+  <div id="modal-manage-lists" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="theme-card bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-bold">Minhas Listas de Compras</h3>
+        <button class="modal-close-btn text-slate-400 hover:text-slate-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <!-- Formulário Nova Lista -->
+      <form id="form-create-list" class="space-y-3 pt-2">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <input type="text" id="new-list-title" placeholder="Nome (Ex: Churrasco, Farmácia...)" required class="theme-input p-2.5 rounded-xl border text-xs focus:outline-none sm:col-span-1">
+          <input type="number" id="new-list-budget" placeholder="Teto R$ (Opcional)" step="0.01" class="theme-input p-2.5 rounded-xl border text-xs focus:outline-none sm:col-span-1">
+        </div>
+        <button type="submit" class="theme-accent-btn w-full py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-md">
+          <i class="fa-solid fa-plus"></i> Criar Nova Lista
+        </button>
+      </form>
+
+      <hr class="border-slate-100 dark:border-slate-800">
+
+      <!-- Listagem das listas existentes -->
+      <div id="lists-manager-container" class="space-y-2 max-h-60 overflow-y-auto">
+        <!-- Preenchido via JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Backup JSON (Exportar / Importar) -->
+  <div id="modal-backup" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="theme-card bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-bold">Backup & Sincronização (JSON)</h3>
+        <button class="modal-close-btn text-slate-400 hover:text-slate-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <p class="text-xs text-slate-500">Exporte todos os seus dados e listas como arquivo JSON seguro ou restaure um backup anterior.</p>
+
+      <div class="space-y-2">
+        <textarea id="backup-json-textarea" rows="6" class="theme-input w-full p-3 rounded-xl border font-mono text-xs focus:outline-none" placeholder="Cole o código JSON do seu backup aqui para restaurar..."></textarea>
+      </div>
+
+      <div class="flex flex-wrap items-center justify-end gap-2 pt-2">
+        <button id="btn-copy-backup-json" class="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-semibold hover:bg-slate-200 transition-all">
+          <i class="fa-solid fa-copy mr-1"></i> Copiar JSON
+        </button>
+        <button id="btn-download-backup-json" class="px-3.5 py-2 rounded-xl bg-blue-500 text-white text-xs font-semibold hover:bg-blue-600 transition-all">
+          <i class="fa-solid fa-download mr-1"></i> Baixar Arquivo .json
+        </button>
+        <button id="btn-restore-backup-json" class="theme-accent-btn px-4 py-2 rounded-xl text-xs font-bold transition-all">
+          <i class="fa-solid fa-upload mr-1"></i> Restaurar Dados
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Editar Item -->
+  <div id="modal-edit-item" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="theme-card bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-bold">Editar Item</h3>
+        <button class="modal-close-btn text-slate-400 hover:text-slate-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form id="form-edit-item" class="space-y-3">
+        <input type="hidden" id="edit-item-id">
+        <div>
+          <label class="block text-xs font-semibold opacity-75 mb-1">Nome do Produto</label>
+          <input type="text" id="edit-item-name" required class="theme-input w-full p-2.5 rounded-xl border text-xs focus:outline-none">
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-xs font-semibold opacity-75 mb-1">Quantidade</label>
+            <input type="number" id="edit-item-qty" step="any" min="0.1" required class="theme-input w-full p-2.5 rounded-xl border text-xs focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold opacity-75 mb-1">Unidade</label>
+            <select id="edit-item-unit" class="theme-input w-full p-2.5 rounded-xl border text-xs focus:outline-none">
+              <option value="un">un</option>
+              <option value="kg">kg</option>
+              <option value="g">g</option>
+              <option value="L">L</option>
+              <option value="ml">ml</option>
+              <option value="pct">pct</option>
+              <option value="cx">cx</option>
+              <option value="dz">dz</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-xs font-semibold opacity-75 mb-1">Preço Est. (R$)</label>
+            <input type="number" id="edit-item-est-price" step="0.01" min="0" class="theme-input w-full p-2.5 rounded-xl border text-xs focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold opacity-75 mb-1">Preço Real no Caixa (R$)</label>
+            <input type="number" id="edit-item-act-price" step="0.01" min="0" class="theme-input w-full p-2.5 rounded-xl border text-xs focus:outline-none">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold opacity-75 mb-1">Corredor / Categoria</label>
+          <select id="edit-item-category" class="theme-input w-full p-2.5 rounded-xl border text-xs focus:outline-none">
+            <option value="Hortifruti">🍎 Hortifruti</option>
+            <option value="Padaria">🍞 Padaria</option>
+            <option value="Carnes & Aves">🥩 Carnes & Aves</option>
+            <option value="Laticínios & Ovos">🧀 Laticínios & Ovos</option>
+            <option value="Mercearia">📦 Mercearia</option>
+            <option value="Bebidas">🥤 Bebidas</option>
+            <option value="Limpeza & Higiene">🧼 Limpeza & Higiene</option>
+            <option value="Pet & Bazar">🐾 Pet & Bazar</option>
+            <option value="Outros">🛒 Outros</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold opacity-75 mb-1">Notas / Marca de preferência</label>
+          <input type="text" id="edit-item-notes" placeholder="Ex: Marca X, sem glúten..." class="theme-input w-full p-2.5 rounded-xl border text-xs focus:outline-none">
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button type="button" class="modal-close-btn px-4 py-2.5 rounded-xl text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800">Cancelar</button>
+          <button type="submit" class="theme-accent-btn px-5 py-2.5 rounded-xl text-xs font-bold">Salvar Alterações</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Scripts ES Modules -->
+  <script type="module" src="js/app.mjs"></script>
+</body>
+</html>
