@@ -6,6 +6,7 @@
  *   npm run test:e2e                  (Chromium)
  *   BROWSER=firefox npm run test:e2e  (requer `npx playwright install firefox`)
  *   BROWSER=webkit  npm run test:e2e  (motor do Safari)
+ *   BASE_URL=https://jao0097.github.io/guilhermedevito/ npm run test:e2e  (testa o site publicado)
  */
 const { chromium, firefox, webkit, devices } = require('playwright');
 const http = require('http');
@@ -46,8 +47,8 @@ async function test(name, fn) {
 }
 
 (async () => {
-  const server = await startServer();
-  const BASE = `http://localhost:${server.address().port}/`;
+  const server = process.env.BASE_URL ? null : await startServer();
+  const BASE = process.env.BASE_URL || `http://localhost:${server.address().port}/`;
   const browser = await ENGINE.launch();
   console.log(`\nSuperLista E2E — ${process.env.BROWSER || 'chromium'} — ${BASE}\n`);
 
@@ -544,7 +545,7 @@ async function test(name, fn) {
 
   // ---------------------------------------------------------------- Resumo
   await browser.close();
-  server.close();
+  server?.close();
   const failed = results.filter(r => !r.ok);
   console.log(`\n${results.length - failed.length}/${results.length} testes passaram${failed.length ? ` — ${failed.length} falharam` : ''}\n`);
   process.exit(failed.length ? 1 : 0);

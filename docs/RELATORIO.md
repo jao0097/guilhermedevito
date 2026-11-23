@@ -229,9 +229,20 @@ guilhermedevito/
 
 ### 10.3 Teste do endereço público
 
-O app usa **apenas caminhos relativos** (`css/…`, `js/…`, `sw.js`), então funciona dentro da subpasta `/guilhermedevito/` do GitHub Pages sem ajustes. O status da publicação foi conferido pela API do GitHub (seção "Environments → github-pages" do repositório).
+| Verificação | Resultado |
+|---|---|
+| Publicação pelo GitHub (workflow *pages build and deployment*, commit `b05a03a`) | ✔ concluído com sucesso |
+| Página e arquivos (`/`, `css/tailwind.css`, `js/app.mjs`, `sw.js`, fontes) | ✔ HTTP 200 em todos |
+| **Suíte E2E completa rodando contra o endereço público** (`BASE_URL=https://jao0097.github.io/guilhermedevito/ npm run test:e2e`) | ✔ **35/35 testes passaram** |
+| Funcionamento **offline** pelo endereço público (Service Worker do GitHub Pages) | ✔ coberto pelo teste "service worker instala e o app abre sem internet" |
 
-Para conferir pelo celular: abra o link, adicione um item, ative o modo avião e recarregue. O app continua funcionando. No Chrome do Android aparece a opção "Instalar app".
+O app usa **apenas caminhos relativos** (`css/…`, `js/…`, `sw.js`), então funciona dentro da subpasta `/guilhermedevito/` sem ajustes.
+
+**App publicado aberto no celular (iPhone 13):**
+
+![App publicado](screenshots/publicado-celular.jpg)
+
+Para conferir você mesmo: abra o link no celular, adicione um item, ative o modo avião e recarregue. O app continua funcionando. No Chrome do Android aparece a opção "Instalar app".
 
 ---
 
