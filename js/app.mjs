@@ -6,6 +6,7 @@ import { ListStore, CATEGORY_ICONS, AISLE_ORDER } from './store.mjs';
 import { parseItemInput } from './parser.mjs';
 import { soundEffects } from './audio.mjs';
 import { formatBRL, formatQty, parseDecimal, normalizeText } from './format.mjs';
+import { showToast, triggerConfetti, escapeHtml, getBadgeClass } from './ui.mjs';
 
 // Instância única do store
 const store = new ListStore();
@@ -29,7 +30,7 @@ const $ = (id) => document.getElementById(id);
 
 // Elementos DOM Principais
 const listSelector = $('list-selector');
-const themeSelector = $('theme-selector');
+const themeButtons = document.querySelectorAll('[data-theme-option]');
 const btnToggleSound = $('btn-toggle-sound');
 const soundIcon = $('sound-icon');
 const btnExportMenu = $('btn-export-menu');
@@ -72,6 +73,8 @@ const emptyStateText = $('empty-state-text');
 
 // Modo Mercado
 const btnOpenShoppingMode = $('btn-open-shopping-mode');
+const btnOpenShoppingModeMobile = $('btn-open-shopping-mode-mobile');
+const mobileCtaCount = $('mobile-cta-count');
 const shoppingModeOverlay = $('shopping-mode-overlay');
 const btnExitShoppingMode = $('btn-exit-shopping-mode');
 const shoppingModeTitle = $('shopping-mode-title');
@@ -132,7 +135,6 @@ if (document.readyState === 'loading') {
 
 function initApp() {
   applyTheme(store.getTheme(), false);
-  if (themeSelector) themeSelector.value = store.getTheme();
 
   soundEffects.setMuted(!store.isSoundEnabled());
   updateSoundIcon();
@@ -161,6 +163,7 @@ function applyTheme(theme, persist = true) {
     const colors = { sunset: '#f43f5e', emerald: '#059669', nordic: '#2563eb', violet: '#7c3aed', dark: '#0f172a' };
     meta.setAttribute('content', colors[theme] || '#f43f5e');
   }
+  themeButtons.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.themeOption === theme)));
   if (persist) store.setTheme(theme);
 }
 
@@ -193,7 +196,13 @@ function closeAllModals() {
 // Eventos
 // ---------------------------------------------------------------------------
 function setupEventListeners() {
-  themeSelector?.addEventListener('change', (e) => applyTheme(e.target.value));
+  themeButtons.forEach(btn => btn.addEventListener('click', (e) => {
+    e.stopPropagation(); // mantém o menu aberto para comparar os temas
+    applyTheme(btn.dataset.themeOption);
+  }));
+  exportDropdown?.addEventListener('click', (e) => {
+    if (!e.target.closest('[data-theme-option]')) exportDropdown.classList.add('hidden');
+  });
 
   btnToggleSound?.addEventListener('click', () => {
     const nextMuted = !soundEffects.isMuted();
@@ -374,7 +383,6 @@ function setupEventListeners() {
     const previous = store.exportJSON();
     if (store.importJSON(val)) {
       applyTheme(store.getTheme(), false);
-      if (themeSelector) themeSelector.value = store.getTheme();
       soundEffects.setMuted(!store.isSoundEnabled());
       updateSoundIcon();
       closeModal(modalBackup);
@@ -455,6 +463,7 @@ function setupEventListeners() {
 
   // Modo Mercado
   btnOpenShoppingMode?.addEventListener('click', enterShoppingMode);
+  btnOpenShoppingModeMobile?.addEventListener('click', enterShoppingMode);
   btnExitShoppingMode?.addEventListener('click', exitShoppingMode);
   btnShoppingFinish?.addEventListener('click', openFinishModal);
   btnShoppingHideChecked?.addEventListener('click', () => {
@@ -577,7 +586,7 @@ function renderListSelector() {
   const active = store.getActiveList();
   listSelector.innerHTML = lists.map(l => `
     <option value="${escapeHtml(l.id)}" ${active && active.id === l.id ? 'selected' : ''}>
-      🛒 ${escapeHtml(l.title)} (${l.items.length})
+      ${escapeHtml(l.title)} (${l.items.length})
     </option>
   `).join('');
 }
@@ -593,6 +602,7 @@ function renderMetrics() {
   mainProgressBar.style.width = `${m.progressPercent}%`;
   mainProgressBar.parentElement?.setAttribute('aria-valuenow', String(m.progressPercent));
   metricActualSpent.textContent = formatBRL(m.totalActual);
+  if (mobileCtaCount) mobileCtaCount.textContent = m.pendingItems > 0 ? `(${m.pendingItems} ${m.pendingItems === 1 ? 'pendente' : 'pendentes'})` : '';
 
   if (metricProjected) {
     if (m.projectedTotal > 0) {
@@ -606,17 +616,18 @@ function renderMetrics() {
 
   if (m.budgetLimit > 0) {
     metricBudgetLimit.textContent = formatBRL(m.budgetLimit);
-    const base = 'mt-1 text-[10px] font-bold px-2 py-0.5 rounded-full inline-block text-white ';
+    const base = 'mt-1 text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full inline-block max-w-full truncate align-bottom text-white ';
     if (m.isOverBudget) {
       budgetAlertBadge.className = base + 'bg-rose-500/80';
-      budgetAlertBadge.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i>Estourou +${formatBRL(m.totalActual - m.budgetLimit)}`;
+      budgetAlertBadge.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1 hidden sm:inline"></i>Estourou +${formatBRL(m.totalActual - m.budgetLimit)}`;
     } else if (m.isWarningBudget) {
       budgetAlertBadge.className = base + 'bg-amber-500/80';
-      budgetAlertBadge.innerHTML = `<i class="fa-solid fa-circle-exclamation mr-1"></i>${m.budgetPercent}% do teto`;
+      budgetAlertBadge.innerHTML = `<i class="fa-solid fa-circle-exclamation mr-1 hidden sm:inline"></i>${m.budgetPercent}% do teto`;
     } else {
       budgetAlertBadge.className = base + 'bg-emerald-500/80';
-      budgetAlertBadge.innerHTML = `<i class="fa-solid fa-shield mr-1"></i>Resta ${formatBRL(m.remainingBudget)}`;
+      budgetAlertBadge.innerHTML = `<i class="fa-solid fa-shield mr-1 hidden sm:inline"></i>Resta ${formatBRL(m.remainingBudget)}`;
     }
+    budgetAlertBadge.title = budgetAlertBadge.textContent; // texto completo se for truncado em telas estreitas
   } else {
     metricBudgetLimit.textContent = 'Sem teto';
     budgetAlertBadge.className = 'hidden';
@@ -683,9 +694,9 @@ function renderItems() {
               <span class="w-7 h-7 rounded-lg flex items-center justify-center text-xs ${getBadgeClass(aisle)}">
                 <i class="fa-solid ${CATEGORY_ICONS[aisle] || 'fa-basket-shopping'}"></i>
               </span>
-              <h3 class="text-xs sm:text-sm font-extrabold uppercase tracking-wider opacity-80">${escapeHtml(aisle)}</h3>
+              <h2 class="text-xs sm:text-sm font-extrabold uppercase tracking-wider opacity-80">${escapeHtml(aisle)}</h2>
             </div>
-            <span class="text-[11px] font-bold opacity-50">${done}/${items.length}</span>
+            <span class="text-[11px] font-bold opacity-70" aria-label="${done} de ${items.length} no carrinho">${done}/${items.length}</span>
           </div>
           <div class="space-y-2">
             ${items.map(renderItemCard).join('')}
@@ -940,7 +951,7 @@ function renderShoppingMode() {
 
   if (shoppingProjected) {
     shoppingProjected.textContent = m.pendingItems > 0 && m.projectedTotal > 0 ? `Previsão final: ${formatBRL(m.projectedTotal)}` : '';
-    shoppingProjected.className = m.isProjectedOverBudget ? 'text-[11px] text-amber-400 font-semibold' : 'text-[11px] text-slate-500';
+    shoppingProjected.className = m.isProjectedOverBudget ? 'text-[11px] text-amber-400 font-semibold' : 'text-[11px] text-slate-400';
   }
 
   const grouped = store.getItemsGroupedByAisle(active.id)
@@ -966,9 +977,9 @@ function renderShoppingMode() {
       <div class="flex items-center justify-between mb-2 px-1">
         <div class="flex items-center gap-2">
           <i class="fa-solid ${CATEGORY_ICONS[group.aisle] || 'fa-basket-shopping'} text-rose-400 text-xs"></i>
-          <h4 class="text-xs font-black uppercase tracking-wider text-slate-400">${escapeHtml(group.aisle)}</h4>
+          <h3 class="text-xs font-black uppercase tracking-wider text-slate-400">${escapeHtml(group.aisle)}</h3>
         </div>
-        <span class="text-[11px] text-slate-500 font-bold">${group.items.filter(i => i.checked).length}/${group.items.length}</span>
+        <span class="text-[11px] text-slate-400 font-bold">${group.items.filter(i => i.checked).length}/${group.items.length}</span>
       </div>
       <div class="space-y-2.5">
         ${group.items.map(item => {
@@ -987,7 +998,7 @@ function renderShoppingMode() {
             </button>
             <button type="button" class="btn-shop-price shrink-0 px-3 sm:px-4 border-l border-slate-700/80 text-right hover:bg-slate-700/50 min-w-[92px]" data-id="${id}" aria-label="Informar preço de ${escapeHtml(item.name)}">
               <span class="text-xs font-bold text-slate-200 block">${total > 0 ? formatBRL(total) : '<i class="fa-solid fa-tag"></i>'}</span>
-              <span class="text-[10px] text-slate-500">${total > 0 ? 'alterar preço' : 'informar preço'}</span>
+              <span class="text-[10px] text-slate-400">${total > 0 ? 'alterar preço' : 'informar preço'}</span>
             </button>
           </div>`;
         }).join('')}
@@ -1172,11 +1183,11 @@ function renderListsManager() {
     const isCurrent = active && active.id === l.id;
     const id = escapeHtml(l.id);
     return `
-      <div class="flex items-center justify-between p-3 rounded-2xl border ${isCurrent ? 'border-[var(--theme-accent)] bg-[var(--theme-accent-soft)]/40' : 'border-slate-100 dark:border-slate-800'}">
+      <div class="flex items-center justify-between p-3 rounded-2xl border ${isCurrent ? 'theme-accent-ring' : 'border-slate-100 dark:border-slate-800'}">
         <div class="flex-1 min-w-0 pr-2">
           <div class="flex items-center gap-2">
             <span class="font-bold text-xs truncate">${escapeHtml(l.title)}</span>
-            ${isCurrent ? '<span class="text-[10px] font-black uppercase" style="color: var(--theme-accent)">(Ativa)</span>' : ''}
+            ${isCurrent ? '<span class="text-[10px] font-black uppercase theme-accent-text">(Ativa)</span>' : ''}
           </div>
           <span class="text-[11px] opacity-60">${l.items.length} ${l.items.length === 1 ? 'item' : 'itens'}${l.budgetLimit > 0 ? ` • Teto: ${formatBRL(l.budgetLimit)}` : ''}</span>
         </div>
@@ -1211,118 +1222,6 @@ function onListsManagerClick(e) {
     if (confirm(`Excluir a lista "${list.title}" e todos os seus ${list.items.length} itens?`)) {
       store.deleteList(id);
     }
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Efeitos, toast e utilitários
-// ---------------------------------------------------------------------------
-function triggerConfetti() {
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  const canvas = $('confetti-canvas');
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-
-  const colors = ['#f43f5e', '#fb923c', '#10b981', '#3b82f6', '#8b5cf6', '#f59e0b'];
-  const particles = Array.from({ length: 90 }, () => ({
-    x: canvas.width / 2,
-    y: canvas.height / 2,
-    vx: (Math.random() - 0.5) * 16,
-    vy: (Math.random() - 0.8) * 16,
-    size: Math.random() * 8 + 4,
-    color: colors[Math.floor(Math.random() * colors.length)],
-    alpha: 1,
-    decay: Math.random() * 0.02 + 0.01
-  }));
-
-  function frame() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    let alive = false;
-    for (const p of particles) {
-      if (p.alpha <= 0) continue;
-      alive = true;
-      p.x += p.vx;
-      p.y += p.vy;
-      p.vy += 0.35;
-      p.alpha -= p.decay;
-      ctx.fillStyle = p.color;
-      ctx.globalAlpha = Math.max(0, p.alpha);
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.globalAlpha = 1;
-    if (alive) requestAnimationFrame(frame);
-    else ctx.clearRect(0, 0, canvas.width, canvas.height);
-  }
-  requestAnimationFrame(frame);
-}
-
-let toastTimer = null;
-function showToast(message, { actionLabel, onAction, duration } = {}) {
-  let toast = $('app-toast');
-  if (!toast) {
-    toast = document.createElement('div');
-    toast.id = 'app-toast';
-    toast.setAttribute('role', 'status');
-    toast.setAttribute('aria-live', 'polite');
-    toast.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 sm:left-auto sm:right-6 sm:translate-x-0 max-w-[calc(100vw-2rem)] bg-slate-900/95 backdrop-blur-md text-white text-xs font-bold pl-4 pr-2 py-2 min-h-[44px] rounded-2xl shadow-2xl border border-slate-700 z-[60] transition-all duration-300 opacity-0 translate-y-4 pointer-events-none flex items-center gap-3';
-    document.body.appendChild(toast);
-  }
-
-  toast.innerHTML = '';
-  const text = document.createElement('span');
-  text.className = 'py-1';
-  text.textContent = message;
-  toast.appendChild(text);
-
-  if (actionLabel && onAction) {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-amber-300 font-black whitespace-nowrap';
-    btn.textContent = actionLabel;
-    btn.addEventListener('click', () => {
-      onAction();
-      hide();
-    });
-    toast.appendChild(btn);
-  } else {
-    toast.classList.add('pr-4');
-  }
-
-  toast.classList.remove('opacity-0', 'translate-y-4', 'pointer-events-none');
-
-  function hide() {
-    toast.classList.add('opacity-0', 'translate-y-4', 'pointer-events-none');
-  }
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(hide, duration || (actionLabel ? 5000 : 2500));
-}
-
-function escapeHtml(value) {
-  if (value === null || value === undefined) return '';
-  return String(value).replace(/[&<>'"]/g, ch => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    "'": '&#39;',
-    '"': '&quot;'
-  }[ch]));
-}
-
-function getBadgeClass(category) {
-  switch (category) {
-    case 'Hortifruti': return 'badge-hortifruti';
-    case 'Padaria': return 'badge-padaria';
-    case 'Carnes & Aves': return 'badge-carnes';
-    case 'Laticínios & Ovos': return 'badge-laticinios';
-    case 'Mercearia': return 'badge-mercearia';
-    case 'Bebidas': return 'badge-bebidas';
-    case 'Limpeza & Higiene': return 'badge-limpeza';
-    case 'Pet & Bazar': return 'badge-pet';
-    default: return 'badge-outros';
   }
 }
 

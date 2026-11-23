@@ -1,9 +1,50 @@
 /* SuperLista V2 - Estilos Modernos e Temas */
 
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+/* Fonte servida localmente (sem depender do Google Fonts em produção/offline) */
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../vendor/fonts/plus-jakarta-sans-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('../vendor/fonts/plus-jakarta-sans-latin-500-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('../vendor/fonts/plus-jakarta-sans-latin-600-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../vendor/fonts/plus-jakarta-sans-latin-700-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url('../vendor/fonts/plus-jakarta-sans-latin-800-normal.woff2') format('woff2');
+}
 
+/* Design tokens globais */
 :root {
   --font-main: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --radius-sm: 0.75rem;
+  --radius-md: 1rem;
+  --radius-lg: 1.5rem;
+  --tap-min: 44px;            /* área mínima de toque recomendada */
+  --theme-accent-contrast: #ffffff; /* cor do texto sobre o botão de destaque */
 }
 
 /* Temas */
@@ -13,8 +54,8 @@ body[data-theme="sunset"] {
   --border-color: #fee2e2;
   --text-primary: #1e293b;
   --text-secondary: #64748b;
-  --theme-gradient: linear-gradient(135deg, #f43f5e 0%, #fb923c 100%);
-  --theme-accent: #f43f5e;
+  --theme-gradient: linear-gradient(135deg, #e11d48 0%, #c2410c 100%);
+  --theme-accent: #e11d48;
   --theme-accent-soft: #ffe4e6;
   --theme-card-hover: #fff1f2;
 }
@@ -25,8 +66,8 @@ body[data-theme="emerald"] {
   --border-color: #dcfce7;
   --text-primary: #0f172a;
   --text-secondary: #475569;
-  --theme-gradient: linear-gradient(135deg, #059669 0%, #10b981 50%, #34d399 100%);
-  --theme-accent: #059669;
+  --theme-gradient: linear-gradient(135deg, #065f46 0%, #047857 100%);
+  --theme-accent: #047857;
   --theme-accent-soft: #d1fae5;
   --theme-card-hover: #ecfdf5;
 }
@@ -37,8 +78,8 @@ body[data-theme="violet"] {
   --border-color: #f3e8ff;
   --text-primary: #1e1b4b;
   --text-secondary: #6b7280;
-  --theme-gradient: linear-gradient(135deg, #7c3aed 0%, #a855f7 50%, #c084fc 100%);
-  --theme-accent: #7c3aed;
+  --theme-gradient: linear-gradient(135deg, #5b21b6 0%, #7c3aed 100%);
+  --theme-accent: #6d28d9;
   --theme-accent-soft: #ede9fe;
   --theme-card-hover: #f5f3ff;
 }
@@ -51,6 +92,7 @@ body[data-theme="dark"] {
   --text-secondary: #94a3b8;
   --theme-gradient: linear-gradient(135deg, #334155 0%, #1e293b 100%);
   --theme-accent: #38bdf8;
+  --theme-accent-contrast: #0b1220; /* azul-claro pede texto escuro */
   --theme-accent-soft: #0c4a6e;
   --theme-card-hover: #243248;
 }
@@ -61,8 +103,8 @@ body[data-theme="nordic"] {
   --border-color: #e2e8f0;
   --text-primary: #0f172a;
   --text-secondary: #64748b;
-  --theme-gradient: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
-  --theme-accent: #2563eb;
+  --theme-gradient: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
+  --theme-accent: #1d4ed8;
   --theme-accent-soft: #dbeafe;
   --theme-card-hover: #eff6ff;
 }
@@ -85,8 +127,11 @@ body {
 
 .theme-accent-btn {
   background-color: var(--theme-accent);
-  color: #ffffff;
+  color: var(--theme-accent-contrast);
 }
+.theme-accent-text { color: var(--theme-accent); }
+.theme-accent-ring { border-color: var(--theme-accent); background-color: var(--theme-accent-soft); }
+body[data-theme="dark"] .theme-accent-ring { background-color: rgba(56, 189, 248, 0.08); }
 .theme-accent-btn:hover {
   filter: brightness(1.08);
 }
@@ -247,3 +292,21 @@ body[data-theme="dark"] .badge-outros { background-color: #334155; color: #cbd5e
   .item-card { border: none !important; padding: 0.25rem 0 !important; }
   .item-card.is-checked { opacity: 1; }
 }
+
+/* Chips com rolagem horizontal: degradê na borda indica que há mais opções */
+.chips-scroll {
+  mask-image: linear-gradient(to right, #000 85%, transparent);
+  -webkit-mask-image: linear-gradient(to right, #000 85%, transparent);
+}
+
+/* Botão fixo "Ir ao mercado" no celular: ao alcance do polegar */
+.mobile-cta {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+
+/* Seletor de tema em amostras de cor */
+.theme-swatch {
+  width: 28px; height: 28px; border-radius: 9999px;
+  border: 2px solid transparent; box-shadow: inset 0 0 0 2px rgba(255,255,255,.6);
+}
+.theme-swatch[aria-pressed="true"] { border-color: var(--text-primary); }

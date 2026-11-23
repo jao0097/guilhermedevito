@@ -1,5 +1,7 @@
 # SuperLista Pro (V2) 🛒✨
 
+**▶ Acesse o app:** https://jao0097.github.io/guilhermedevito/ · 📄 [Relatório das etapas 8 a 11](docs/RELATORIO.md)
+
 Uma evolução completa da aplicação de lista de supermercado, projetada para velocidade, controle financeiro ativo e excelente usabilidade mobile durante as compras no supermercado.
 
 ---
@@ -49,53 +51,62 @@ Uma evolução completa da aplicação de lista de supermercado, projetada para 
 
 ---
 
-## 🚀 Como Executar
+## 🆕 Novidades da versão 2.2 (UI/UX e publicação)
 
-A aplicação é puramente estática e moderna (zero build tools necessários):
+- 📱 **Layout mobile-first**: cabeçalho compacto, botão fixo **"Ir ao mercado"** ao alcance do polegar, alvos de toque ≥ 44 px.
+- 🎨 Menu **"Mais"** com temas por amostras de cor; contraste de todos os temas ajustado para ≥ 4,5:1.
+- 📦 **Zero CDNs**: Tailwind compilado e Font Awesome/fonte servidos de `vendor/`. O app inteiro funciona offline.
+- 🧪 **35 testes de ponta a ponta** (Playwright) cobrindo todos os botões, formulários, 5 tamanhos de tela e modo offline.
 
-1. **Abrir no navegador**: Dê um duplo clique no arquivo [`index.html`](index.html) em qualquer navegador moderno (Chrome, Edge, Safari, Firefox).
-2. **Servidor local (recomendado)**: necessário para o modo offline/instalação (Service Worker não funciona em `file://`):
-   ```bash
-   npx serve .
-   ```
+Capturas de antes e depois em [`docs/RELATORIO.md`](docs/RELATORIO.md).
 
 ---
 
-## 🧪 Testes Automatizados (TDD)
+## 🚀 Como Executar
 
-O núcleo da aplicação foi desenvolvido seguindo estritamente Test-Driven Development (TDD) com o Node.js Test Runner nativo:
+- **Online**: https://jao0097.github.io/guilhermedevito/ (instalável no celular, funciona offline).
+- **Local**: sirva a pasta com qualquer servidor estático (o Service Worker não funciona em `file://`):
+  ```bash
+  npx serve .
+  ```
+- **Alterou classes do Tailwind no HTML/JS?** Recompile o CSS:
+  ```bash
+  npm install && npm run build:css
+  ```
+
+---
+
+## 🧪 Testes Automatizados
 
 ```bash
-node --test tests/*.test.mjs
+npm test            # 22 testes unitários (Node.js Test Runner)
+npm run test:e2e    # 35 testes de ponta a ponta no navegador (Playwright)
 ```
 
-### Cobertura dos Testes:
-- **`tests/parser.test.mjs`**: Numerais com vírgula/ponto e por extenso, unidades faladas, meia dúzia, preço embutido, quantidade no final e categorização por núcleo do nome.
-- **`tests/store.test.mjs`**: Múltiplas listas (criar, duplicar, desmarcar), orçamento e previsão, mesclagem de duplicados, remover/desfazer, agrupamento por corredores, exportação WhatsApp/CSV e importação de backup com higienização.
+Para outros navegadores: `npx playwright install firefox webkit` e depois `BROWSER=firefox npm run test:e2e` ou `BROWSER=webkit npm run test:e2e`.
+
+- **`tests/parser.test.mjs`**: unidades faladas, números por extenso, meia dúzia, preço embutido e categorização.
+- **`tests/store.test.mjs`**: listas, orçamento e previsão, duplicados, desfazer, exportações e higienização de backup.
+- **`tests/e2e/run.cjs`**: todos os botões e formulários, validações, modais, Modo Mercado, temas, teclado, responsividade (320 px a 1440 px) e offline.
 
 ---
 
 ## 📁 Estrutura de Arquivos
 
 ```text
-superlista-v2/
-├── index.html                   # Estrutura HTML5 moderna com Modo Mercado
-├── style.css                    # Estilos CSS, temas visuais e animações
+├── index.html                # Página do app
+├── manifest.webmanifest      # PWA (instalar na tela inicial)
+├── sw.js                     # Service Worker (offline)
+├── css/                      # tailwind.css (compilado), style.css (temas e tokens)
 ├── js/
-│   ├── store.mjs                # Estado reativo, orçamento, persistência e exportação
-│   ├── parser.mjs               # Interpretador de linguagem natural e voz
-│   ├── audio.mjs                # Sintetizador sonoro puro via Web Audio API
-│   ├── format.mjs               # Formatação pt-BR (R$, quantidades) e normalização de texto
-│   └── app.mjs                  # Controlador da UI, eventos, Wake Lock e Speech API
-├── sw.js                        # Service Worker (funcionamento offline)
-├── manifest.webmanifest         # Manifesto PWA (instalar na tela inicial)
-├── icon.svg                     # Ícone do app
-├── tests/
-│   ├── store.test.mjs           # Bateria de testes do store
-│   └── parser.test.mjs          # Bateria de testes do parser
-├── docs/
-│   ├── superpowers/specs/       # Especificação técnica do projeto
-│   └── superpowers/plans/       # Plano de implementação executado
-├── COMPARISON.md                # Comparativo detalhado V1 vs V2
-└── README.md                    # Este arquivo
+│   ├── app.mjs               # Controlador da UI, eventos, Wake Lock e voz
+│   ├── store.mjs             # Estado, listas, orçamento, persistência e exportação
+│   ├── parser.mjs            # Linguagem natural e voz
+│   ├── format.mjs            # Formatação pt-BR (R$, quantidades)
+│   ├── ui.mjs                # Toast, confete, escape de HTML
+│   └── audio.mjs             # Sons via Web Audio API
+├── assets/icon.svg
+├── vendor/                   # Font Awesome 6.5.1 e Plus Jakarta Sans (licenças incluídas)
+├── tests/                    # Unitários + E2E
+└── docs/                     # Relatório, capturas, especificação, plano e comparativo V1×V2
 ```
