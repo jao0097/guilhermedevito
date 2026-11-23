@@ -1,0 +1,15 @@
+{
+  "name": "SuperLista Pro",
+  "short_name": "SuperLista",
+  "description": "Lista de compras inteligente com voz, teto de gastos e modo mercado.",
+  "lang": "pt-BR",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fff8f5",
+  "theme_color": "#f43f5e",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

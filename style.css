@@ -200,7 +200,7 @@ body[data-theme="dark"] .badge-outros { background-color: #334155; color: #cbd5e
     background: white !important;
     color: black !important;
   }
-  header, #add-item-section, .no-print, button, #shopping-mode-overlay {
+  header, #add-item-section, .no-print, button:not(.btn-toggle-check), #shopping-mode-overlay, .modal-backdrop {
     display: none !important;
   }
   .theme-card {
@@ -208,4 +208,42 @@ body[data-theme="dark"] .badge-outros { background-color: #334155; color: #cbd5e
     box-shadow: none !important;
     page-break-inside: avoid;
   }
+}
+
+/* Acessibilidade: foco visível ao navegar pelo teclado */
+:focus-visible {
+  outline: 3px solid var(--theme-accent);
+  outline-offset: 2px;
+  border-radius: 0.75rem;
+}
+#shopping-mode-overlay :focus-visible {
+  outline-color: #34d399;
+}
+
+/* Esconde barra de rolagem dos chips sem perder o scroll horizontal */
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* Áreas de toque maiores no celular */
+@media (pointer: coarse) {
+  .suggestion-chip { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+}
+
+/* Respeita quem prefere menos animação */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Modo mercado: cartões ainda mais confortáveis para o polegar */
+.shopping-card .btn-shop-toggle { min-height: 72px; }
+.shopping-card:active { transform: scale(0.99); }
+
+/* Impressão: imprime só a lista em si, com checkbox vazio para riscar à caneta */
+@media print {
+  #empty-state, .status-tab, #search-input, #btn-toggle-view-mode, #app-toast { display: none !important; }
+  .item-card { border: none !important; padding: 0.25rem 0 !important; }
+  .item-card.is-checked { opacity: 1; }
 }

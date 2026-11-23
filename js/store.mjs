@@ -2,6 +2,8 @@
  * SuperLista V2 - Store de Gerenciamento Reativo de Múltiplas Listas e Orçamento
  */
 
+import { formatBRL, formatQty, normalizeText } from './format.mjs';
+
 export const AISLE_ORDER = [
   'Hortifruti',
   'Padaria',
@@ -25,6 +27,86 @@ export const CATEGORY_ICONS = {
   'Pet & Bazar': 'fa-paw',
   'Outros': 'fa-basket-shopping'
 };
+
+export const VALID_UNITS = ['un', 'kg', 'g', 'L', 'ml', 'pct', 'cx', 'dz'];
+
+function genId(prefix) {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function toFiniteNumber(value, fallback) {
+  const n = typeof value === 'string' ? parseFloat(value.replace(',', '.')) : Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+/** Garante que um item (vindo do storage ou de um backup externo) tenha tipos válidos. */
+export function normalizeItem(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const name = String(raw.name ?? '').trim();
+  if (!name) return null;
+  const qty = toFiniteNumber(raw.qty, 1);
+  const estimatedPrice = Math.max(0, toFiniteNumber(raw.estimatedPrice, 0));
+  const actualRaw = raw.actualPrice === null || raw.actualPrice === undefined || raw.actualPrice === ''
+    ? estimatedPrice
+    : toFiniteNumber(raw.actualPrice, estimatedPrice);
+  return {
+    id: String(raw.id || genId('item')),
+    name,
+    qty: qty > 0 ? qty : 1,
+    unit: VALID_UNITS.includes(raw.unit) ? raw.unit : 'un',
+    estimatedPrice,
+    actualPrice: Math.max(0, actualRaw),
+    category: AISLE_ORDER.includes(raw.category) ? raw.category : 'Outros',
+    checked: !!raw.checked,
+    notes: String(raw.notes ?? '').trim(),
+    createdAt: toFiniteNumber(raw.createdAt, Date.now())
+  };
+}
+
+export function normalizeList(raw) {
+  if (!raw || typeof raw !== 'object' || !Array.isArray(raw.items)) return null;
+  const title = String(raw.title ?? '').trim();
+  if (!title) return null;
+  const seen = new Set();
+  const items = [];
+  for (const it of raw.items) {
+    const item = normalizeItem(it);
+    if (!item) continue;
+    if (seen.has(item.id)) item.id = genId('item');
+    seen.add(item.id);
+    items.push(item);
+  }
+  return {
+    id: String(raw.id || genId('list')),
+    title,
+    budgetLimit: Math.max(0, toFiniteNumber(raw.budgetLimit, 0)),
+    createdAt: toFiniteNumber(raw.createdAt, Date.now()),
+    items
+  };
+}
+
+/** Valida e higieniza um estado completo. Retorna null se não houver nenhuma lista aproveitável. */
+export function normalizeState(raw) {
+  if (!raw || typeof raw !== 'object' || !Array.isArray(raw.lists)) return null;
+  const seen = new Set();
+  const lists = [];
+  for (const l of raw.lists) {
+    const list = normalizeList(l);
+    if (!list) continue;
+    if (seen.has(list.id)) list.id = genId('list');
+    seen.add(list.id);
+    lists.push(list);
+  }
+  if (lists.length === 0) return null;
+  const activeListId = lists.some(l => l.id === raw.activeListId) ? raw.activeListId : lists[0].id;
+  return {
+    version: 2,
+    activeListId,
+    theme: typeof raw.theme === 'string' ? raw.theme : 'sunset',
+    soundEnabled: raw.soundEnabled !== false,
+    lists
+  };
+}
 
 const DEFAULT_STATE = {
   version: 2,
@@ -60,10 +142,8 @@ export class ListStore {
       try {
         const raw = this.storage.getItem(this.storageKey);
         if (raw) {
-          const parsed = JSON.parse(raw);
-          if (parsed && Array.isArray(parsed.lists) && parsed.lists.length > 0) {
-            return parsed;
-          }
+          const parsed = normalizeState(JSON.parse(raw));
+          if (parsed) return parsed;
         }
       } catch (err) {
         console.warn('Falha ao restaurar dados salvos. Usando estado inicial.', err);
@@ -132,9 +212,9 @@ export class ListStore {
 
   createList(title, budgetLimit = 0) {
     const newList = {
-      id: 'list-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
+      id: genId('list'),
       title: (title || 'Nova Lista').trim(),
-      budgetLimit: parseFloat(budgetLimit) || 0,
+      budgetLimit: Math.max(0, toFiniteNumber(budgetLimit, 0)),
       createdAt: Date.now(),
       items: []
     };
@@ -144,11 +224,28 @@ export class ListStore {
     return newList;
   }
 
+  /** Cria uma cópia da lista com todos os itens desmarcados (ex.: reaproveitar a lista do mês). */
+  duplicateList(listId) {
+    const source = this.getList(listId);
+    if (!source) return null;
+    const copy = {
+      id: genId('list'),
+      title: `${source.title} (cópia)`,
+      budgetLimit: source.budgetLimit,
+      createdAt: Date.now(),
+      items: source.items.map(item => ({ ...item, id: genId('item'), checked: false, createdAt: Date.now() }))
+    };
+    this.state.lists.push(copy);
+    this.state.activeListId = copy.id;
+    this.saveState();
+    return copy;
+  }
+
   updateList(listId, { title, budgetLimit }) {
     const list = this.getList(listId);
     if (!list) return false;
-    if (title !== undefined) list.title = title.trim();
-    if (budgetLimit !== undefined) list.budgetLimit = parseFloat(budgetLimit) || 0;
+    if (title !== undefined && String(title).trim()) list.title = String(title).trim();
+    if (budgetLimit !== undefined) list.budgetLimit = Math.max(0, toFiniteNumber(budgetLimit, 0));
     this.saveState();
     return true;
   }
@@ -165,19 +262,43 @@ export class ListStore {
     return true;
   }
 
-  addItem(listId, itemData) {
+  /**
+   * Adiciona um item à lista. Com `mergeDuplicates`, se já existir um item pendente com o
+   * mesmo nome (ignorando acentos/caixa) e mesma unidade, soma a quantidade em vez de duplicar.
+   * Retorna o item resultante; `item.merged === true` indica que houve mesclagem.
+   */
+  addItem(listId, itemData, { mergeDuplicates = false } = {}) {
     const list = this.getList(listId);
     if (!list) return null;
 
-    const estPrice = parseFloat(itemData.estimatedPrice) || 0;
+    const estPrice = Math.max(0, toFiniteNumber(itemData.estimatedPrice, 0));
+    const qty = toFiniteNumber(itemData.qty, 1);
+    const unit = VALID_UNITS.includes(itemData.unit) ? itemData.unit : 'un';
+    const name = String(itemData.name || '').trim();
+    if (!name) return null;
+
+    if (mergeDuplicates) {
+      const key = normalizeText(name);
+      const existing = list.items.find(i => !i.checked && i.unit === unit && normalizeText(i.name) === key);
+      if (existing) {
+        existing.qty = Math.round((existing.qty + (qty > 0 ? qty : 1)) * 1000) / 1000;
+        if (estPrice > 0) {
+          existing.estimatedPrice = estPrice;
+          existing.actualPrice = estPrice;
+        }
+        this.saveState();
+        return { ...existing, merged: true };
+      }
+    }
+
     const newItem = {
-      id: 'item-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
-      name: (itemData.name || '').trim(),
-      qty: parseFloat(itemData.qty) > 0 ? parseFloat(itemData.qty) : 1,
-      unit: itemData.unit || 'un',
+      id: genId('item'),
+      name,
+      qty: qty > 0 ? qty : 1,
+      unit,
       estimatedPrice: estPrice,
-      actualPrice: itemData.actualPrice !== undefined ? parseFloat(itemData.actualPrice) : estPrice,
-      category: itemData.category || 'Outros',
+      actualPrice: itemData.actualPrice !== undefined ? Math.max(0, toFiniteNumber(itemData.actualPrice, estPrice)) : estPrice,
+      category: AISLE_ORDER.includes(itemData.category) ? itemData.category : 'Outros',
       checked: !!itemData.checked,
       notes: (itemData.notes || '').trim(),
       createdAt: Date.now()
@@ -186,6 +307,37 @@ export class ListStore {
     list.items.unshift(newItem);
     this.saveState();
     return newItem;
+  }
+
+  /** Reinsere itens removidos (usado pelo "Desfazer"), preservando a posição original quando possível. */
+  restoreItems(listId, entries) {
+    const list = this.getList(listId);
+    if (!list || !Array.isArray(entries)) return 0;
+    const sorted = [...entries].sort((a, b) => a.index - b.index);
+    let count = 0;
+    for (const { item, index } of sorted) {
+      if (!item || list.items.some(i => i.id === item.id)) continue;
+      const pos = Math.min(Math.max(0, index ?? 0), list.items.length);
+      list.items.splice(pos, 0, item);
+      count++;
+    }
+    if (count > 0) this.saveState();
+    return count;
+  }
+
+  /** Desmarca todos os itens (reaproveitar a mesma lista na próxima compra). */
+  uncheckAll(listId) {
+    const list = this.getList(listId);
+    if (!list) return 0;
+    let count = 0;
+    for (const item of list.items) {
+      if (item.checked) {
+        item.checked = false;
+        count++;
+      }
+    }
+    if (count > 0) this.saveState();
+    return count;
   }
 
   toggleItem(listId, itemId) {
@@ -205,13 +357,16 @@ export class ListStore {
     const item = list.items.find(i => i.id === itemId);
     if (!item) return null;
 
-    if (updates.name !== undefined) item.name = updates.name.trim();
-    if (updates.qty !== undefined) item.qty = parseFloat(updates.qty) || 1;
-    if (updates.unit !== undefined) item.unit = updates.unit;
-    if (updates.estimatedPrice !== undefined) item.estimatedPrice = parseFloat(updates.estimatedPrice) || 0;
-    if (updates.actualPrice !== undefined) item.actualPrice = parseFloat(updates.actualPrice) || 0;
-    if (updates.category !== undefined) item.category = updates.category;
-    if (updates.notes !== undefined) item.notes = updates.notes;
+    if (updates.name !== undefined && String(updates.name).trim()) item.name = String(updates.name).trim();
+    if (updates.qty !== undefined) {
+      const q = toFiniteNumber(updates.qty, 1);
+      item.qty = q > 0 ? q : 1;
+    }
+    if (updates.unit !== undefined && VALID_UNITS.includes(updates.unit)) item.unit = updates.unit;
+    if (updates.estimatedPrice !== undefined) item.estimatedPrice = Math.max(0, toFiniteNumber(updates.estimatedPrice, 0));
+    if (updates.actualPrice !== undefined) item.actualPrice = Math.max(0, toFiniteNumber(updates.actualPrice, 0));
+    if (updates.category !== undefined && AISLE_ORDER.includes(updates.category)) item.category = updates.category;
+    if (updates.notes !== undefined) item.notes = String(updates.notes).trim();
     if (updates.checked !== undefined) item.checked = !!updates.checked;
 
     this.saveState();
@@ -230,16 +385,29 @@ export class ListStore {
     return false;
   }
 
+  /** Remove os itens já comprados. Retorna a quantidade removida. */
   clearCheckedItems(listId) {
+    return this.removeItemsWhere(listId, i => i.checked).length;
+  }
+
+  /**
+   * Remove itens que satisfazem o predicado e devolve `[{ item, index }]`
+   * com as posições originais, para permitir "Desfazer" via restoreItems().
+   */
+  removeItemsWhere(listId, predicate) {
     const list = this.getList(listId);
-    if (!list) return 0;
-    const initialLen = list.items.length;
-    list.items = list.items.filter(i => !i.checked);
-    const removedCount = initialLen - list.items.length;
-    if (removedCount > 0) {
+    if (!list) return [];
+    const removed = [];
+    const kept = [];
+    list.items.forEach((item, index) => {
+      if (predicate(item)) removed.push({ item, index });
+      else kept.push(item);
+    });
+    if (removed.length > 0) {
+      list.items = kept;
       this.saveState();
     }
-    return removedCount;
+    return removed;
   }
 
   clearAllItems(listId) {
@@ -265,7 +433,9 @@ export class ListStore {
         budgetPercent: 0,
         isOverBudget: false,
         isWarningBudget: false,
-        remainingBudget: 0
+        remainingBudget: 0,
+        projectedTotal: 0,
+        isProjectedOverBudget: false
       };
     }
 
@@ -277,6 +447,7 @@ export class ListStore {
 
     let totalEstimated = 0;
     let totalActual = 0;
+    let pendingEstimated = 0;
 
     for (const item of items) {
       const q = item.qty || 1;
@@ -284,10 +455,14 @@ export class ListStore {
       totalEstimated += est;
 
       if (item.checked) {
-        const act = (item.actualPrice !== undefined && item.actualPrice !== null ? item.actualPrice : item.estimatedPrice || 0) * q;
-        totalActual += act;
+        totalActual += getUnitPrice(item) * q;
+      } else {
+        pendingEstimated += est;
       }
     }
+
+    // Projeção: o que já está no carrinho + o que falta pegar (pelo preço estimado)
+    const projectedTotal = totalActual + pendingEstimated;
 
     const budgetLimit = list.budgetLimit || 0;
     let budgetPercent = 0;
@@ -313,7 +488,9 @@ export class ListStore {
       budgetPercent,
       isOverBudget,
       isWarningBudget,
-      remainingBudget: Math.round(remainingBudget * 100) / 100
+      remainingBudget: Math.round(remainingBudget * 100) / 100,
+      projectedTotal: Math.round(projectedTotal * 100) / 100,
+      isProjectedOverBudget: budgetLimit > 0 && projectedTotal > budgetLimit
     };
   }
 
@@ -354,9 +531,9 @@ export class ListStore {
     lines.push(`📅 ${new Date().toLocaleDateString('pt-BR')}`);
     lines.push(`📊 Progresso: ${metrics.checkedItems}/${metrics.totalItems} (${metrics.progressPercent}%)`);
     if (metrics.budgetLimit > 0) {
-      lines.push(`💰 Total no Carrinho: R$ ${metrics.totalActual.toFixed(2).replace('.', ',')} / Teto: R$ ${metrics.budgetLimit.toFixed(2).replace('.', ',')}`);
-    } else {
-      lines.push(`💰 Total Estimado: R$ ${metrics.totalEstimated.toFixed(2).replace('.', ',')}`);
+      lines.push(`💰 Total no Carrinho: ${formatBRL(metrics.totalActual)} / Teto: ${formatBRL(metrics.budgetLimit)}`);
+    } else if (metrics.totalEstimated > 0) {
+      lines.push(`💰 Total Estimado: ${formatBRL(metrics.totalEstimated)}`);
     }
     lines.push('----------------------------------');
 
@@ -364,8 +541,9 @@ export class ListStore {
       lines.push(`\n📌 *${group.aisle.toUpperCase()}*`);
       for (const item of group.items) {
         const mark = item.checked ? '✅' : '⬜';
-        const priceStr = item.estimatedPrice > 0 ? ` (R$ ${item.estimatedPrice.toFixed(2).replace('.', ',')})` : '';
-        lines.push(`${mark} ${item.name} - ${item.qty} ${item.unit}${priceStr}`);
+        const priceStr = item.estimatedPrice > 0 ? ` (${formatBRL(item.estimatedPrice)})` : '';
+        const notesStr = item.notes ? ` _${item.notes}_` : '';
+        lines.push(`${mark} ${item.name} - ${formatQty(item.qty)} ${item.unit}${priceStr}${notesStr}`);
       }
     }
 
@@ -382,12 +560,12 @@ export class ListStore {
 
     for (const item of list.items) {
       rows.push([
-        `"${item.name.replace(/"/g, '""')}"`,
-        item.qty,
+        csvText(item.name),
+        csvNumber(item.qty),
         item.unit,
-        `"${item.category}"`,
-        item.estimatedPrice || 0,
-        item.actualPrice || item.estimatedPrice || 0,
+        csvText(item.category),
+        csvNumber(item.estimatedPrice || 0),
+        csvNumber(getUnitPrice(item)),
         item.checked ? 'Sim' : 'Nao'
       ].join(';'));
     }
@@ -401,15 +579,8 @@ export class ListStore {
 
   importJSON(jsonString) {
     try {
-      const parsed = JSON.parse(jsonString);
-      if (!parsed || !Array.isArray(parsed.lists) || parsed.lists.length === 0) {
-        return false;
-      }
-      for (const l of parsed.lists) {
-        if (!l.id || !l.title || !Array.isArray(l.items)) {
-          return false;
-        }
-      }
+      const parsed = normalizeState(JSON.parse(jsonString));
+      if (!parsed) return false;
       this.state = parsed;
       this.saveState();
       return true;
@@ -436,4 +607,22 @@ export class ListStore {
   isSoundEnabled() {
     return this.state.soundEnabled !== false;
   }
+}
+
+/** Preço unitário efetivo: o real pago no caixa, ou o estimado se o real não foi informado. */
+function getUnitPrice(item) {
+  const act = item.actualPrice;
+  return act !== undefined && act !== null && Number.isFinite(act) ? act : (item.estimatedPrice || 0);
+}
+
+// Excel/Sheets em pt-BR usam ";" como separador e "," como decimal
+function csvNumber(n) {
+  return String(Math.round((Number(n) || 0) * 1000) / 1000).replace('.', ',');
+}
+
+function csvText(str) {
+  let s = String(str ?? '');
+  // Evita injeção de fórmulas ao abrir no Excel (=, +, -, @ no início da célula)
+  if (/^[=+\-@]/.test(s)) s = "'" + s;
+  return `"${s.replace(/"/g, '""')}"`;
 }

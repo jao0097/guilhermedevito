@@ -31,12 +31,30 @@ Uma evolução completa da aplicação de lista de supermercado, projetada para 
 
 ---
 
+## 🆕 Novidades da versão 2.1
+
+- 🗣️ **Parser entende fala natural**: *"dois quilos de tomate"*, *"meia dúzia de ovos"* (vira 6 un), *"3 caixas de leite"*, *"meio quilo de carne moída"*, *"Sabonete x3"* e preço junto: *"café R$ 18,90"*.
+- 🧠 **Categorias mais espertas**: prioriza o núcleo do nome — *"Suco de laranja"* é Bebida, *"Água sanitária"* é Limpeza, *"Molho de tomate"* é Mercearia — e entende plurais (*"Tomates"*).
+- ➕ **Sem duplicados**: adicionar "leite" de novo soma a quantidade no item pendente existente.
+- 📋 **Vários itens de uma vez**: separe por `;` ou nova linha, ou fale *"arroz e feijão e café"*.
+- ↩️ **Desfazer** ao excluir item, limpar comprados, adicionar ou restaurar backup.
+- 🏷️ **Preço no caixa direto do Modo Mercado**: toque no preço do item, digite o valor da etiqueta (unitário ou total) e ele já é marcado como pego.
+- 📈 **Previsão da compra**: mostra quanto a compra vai custar no total (carrinho + pendentes) e avisa *antes* de estourar o teto.
+- ✅ **Concluir compra com escolha**: desmarcar tudo para reusar a lista, remover os comprados ou manter.
+- 📑 **Renomear e duplicar listas** (ótimo para a lista do mês).
+- 📴 **Funciona offline (PWA)**: instalável na tela inicial e com cache via Service Worker — mercado costuma ter sinal ruim.
+- 🌙 **Tema escuro corrigido**: os componentes seguem o tema escolhido no app, não o do sistema operacional.
+- 🔒 **Backup seguro**: dados importados são validados e higienizados (sem injeção de HTML), e o CSV abre certo no Excel pt-BR (vírgula decimal, proteção contra fórmulas).
+- ♿ **Acessibilidade**: itens são botões reais (teclado/leitor de tela), `Esc` fecha modais, `/` foca o campo de adicionar, zoom liberado, respeita "reduzir movimento".
+
+---
+
 ## 🚀 Como Executar
 
 A aplicação é puramente estática e moderna (zero build tools necessários):
 
 1. **Abrir no navegador**: Dê um duplo clique no arquivo [`index.html`](index.html) em qualquer navegador moderno (Chrome, Edge, Safari, Firefox).
-2. **Servidor local (opcional)**: Você também pode usar a extensão *Live Server* ou rodar:
+2. **Servidor local (recomendado)**: necessário para o modo offline/instalação (Service Worker não funciona em `file://`):
    ```bash
    npx serve .
    ```
@@ -52,8 +70,8 @@ node --test tests/*.test.mjs
 ```
 
 ### Cobertura dos Testes:
-- **`tests/parser.test.mjs`**: Validação de regex, numerais com vírgula/ponto, unidades de medida e categorização semântica.
-- **`tests/store.test.mjs`**: Ciclo de vida de múltiplas listas, cálculos de orçamento e teto, agrupamento por corredores, exportação WhatsApp/CSV e migração de backup JSON.
+- **`tests/parser.test.mjs`**: Numerais com vírgula/ponto e por extenso, unidades faladas, meia dúzia, preço embutido, quantidade no final e categorização por núcleo do nome.
+- **`tests/store.test.mjs`**: Múltiplas listas (criar, duplicar, desmarcar), orçamento e previsão, mesclagem de duplicados, remover/desfazer, agrupamento por corredores, exportação WhatsApp/CSV e importação de backup com higienização.
 
 ---
 
@@ -67,7 +85,11 @@ superlista-v2/
 │   ├── store.mjs                # Estado reativo, orçamento, persistência e exportação
 │   ├── parser.mjs               # Interpretador de linguagem natural e voz
 │   ├── audio.mjs                # Sintetizador sonoro puro via Web Audio API
+│   ├── format.mjs               # Formatação pt-BR (R$, quantidades) e normalização de texto
 │   └── app.mjs                  # Controlador da UI, eventos, Wake Lock e Speech API
+├── sw.js                        # Service Worker (funcionamento offline)
+├── manifest.webmanifest         # Manifesto PWA (instalar na tela inicial)
+├── icon.svg                     # Ícone do app
 ├── tests/
 │   ├── store.test.mjs           # Bateria de testes do store
 │   └── parser.test.mjs          # Bateria de testes do parser

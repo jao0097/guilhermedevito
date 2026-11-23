@@ -129,3 +129,108 @@ test('ListStore exports to WhatsApp, CSV and backup JSON correctly', () => {
   assert.equal(imported, true);
   assert.ok(newStore.getLists().some(l => l.title === 'Export Test'));
 });
+
+test('ListStore merges duplicate pending items when requested', () => {
+  const store = new ListStore(createMockStorage());
+  const list = store.createList('Merge');
+  store.addItem(list.id, { name: 'Leite', qty: 2, unit: 'L' }, { mergeDuplicates: true });
+  const merged = store.addItem(list.id, { name: 'leite', qty: 1, unit: 'L' }, { mergeDuplicates: true });
+  assert.equal(merged.merged, true);
+  assert.equal(store.getList(list.id).items.length, 1);
+  assert.equal(store.getList(list.id).items[0].qty, 3);
+
+  // Unidade diferente não mescla
+  store.addItem(list.id, { name: 'Leite', qty: 1, unit: 'cx' }, { mergeDuplicates: true });
+  assert.equal(store.getList(list.id).items.length, 2);
+});
+
+test('ListStore removes and restores items for undo', () => {
+  const store = new ListStore(createMockStorage());
+  const list = store.createList('Undo');
+  store.addItem(list.id, { name: 'A' });
+  store.addItem(list.id, { name: 'B' });
+  store.addItem(list.id, { name: 'C' });
+  const before = store.getList(list.id).items.map(i => i.name);
+
+  const ids = store.getList(list.id).items.filter(i => i.name !== 'B').map(i => i.id);
+  store.toggleItem(list.id, ids[0]);
+  store.toggleItem(list.id, ids[1]);
+  const removed = store.removeItemsWhere(list.id, i => i.checked);
+  assert.equal(removed.length, 2);
+  assert.deepEqual(store.getList(list.id).items.map(i => i.name), ['B']);
+
+  store.restoreItems(list.id, removed);
+  assert.deepEqual(store.getList(list.id).items.map(i => i.name), before);
+});
+
+test('ListStore projects total spending including pending items', () => {
+  const store = new ListStore(createMockStorage());
+  const list = store.createList('Projeção', 100);
+  store.addItem(list.id, { name: 'Carne', qty: 1, estimatedPrice: 70 });
+  store.addItem(list.id, { name: 'Vinho', qty: 1, estimatedPrice: 40 });
+  const carne = store.getList(list.id).items.find(i => i.name === 'Carne');
+  store.toggleItem(list.id, carne.id);
+  store.updateItem(list.id, carne.id, { actualPrice: 65 });
+
+  const m = store.getMetrics(list.id);
+  assert.equal(m.totalActual, 65);
+  assert.equal(m.projectedTotal, 105);
+  assert.equal(m.isOverBudget, false);
+  assert.equal(m.isProjectedOverBudget, true);
+});
+
+test('ListStore duplicates a list with all items unchecked and uncheckAll resets a list', () => {
+  const store = new ListStore(createMockStorage());
+  const list = store.createList('Mensal', 500);
+  const item = store.addItem(list.id, { name: 'Arroz', category: 'Mercearia' });
+  store.toggleItem(list.id, item.id);
+
+  const copy = store.duplicateList(list.id);
+  assert.equal(copy.title, 'Mensal (cópia)');
+  assert.equal(copy.budgetLimit, 500);
+  assert.equal(copy.items[0].checked, false);
+  assert.notEqual(copy.items[0].id, item.id);
+  assert.equal(store.getActiveList().id, copy.id);
+
+  assert.equal(store.uncheckAll(list.id), 1);
+  assert.equal(store.getList(list.id).items[0].checked, false);
+});
+
+test('ListStore sanitizes imported backups and rejects garbage', () => {
+  const store = new ListStore(createMockStorage());
+  assert.equal(store.importJSON('not json'), false);
+  assert.equal(store.importJSON(JSON.stringify({ lists: [] })), false);
+  assert.equal(store.importJSON(JSON.stringify({ lists: [{ title: '', items: [] }] })), false);
+
+  const ok = store.importJSON(JSON.stringify({
+    activeListId: 'nope',
+    lists: [{
+      id: 'l1',
+      title: 'Importada',
+      budgetLimit: '120,50',
+      items: [
+        { id: 'x"><img src=x onerror=alert(1)>', name: 'Feijão', qty: '2', unit: 'tonelada', category: 'Inexistente', estimatedPrice: '7.5' },
+        { name: '' },
+        null
+      ]
+    }]
+  }));
+  assert.equal(ok, true);
+  const list = store.getActiveList();
+  assert.equal(list.id, 'l1');
+  assert.equal(list.budgetLimit, 120.5);
+  assert.equal(list.items.length, 1);
+  assert.equal(list.items[0].qty, 2);
+  assert.equal(list.items[0].unit, 'un');
+  assert.equal(list.items[0].category, 'Outros');
+  assert.equal(list.items[0].estimatedPrice, 7.5);
+  assert.equal(list.items[0].actualPrice, 7.5);
+});
+
+test('ListStore CSV uses Brazilian decimals and guards against formula injection', () => {
+  const store = new ListStore(createMockStorage());
+  const list = store.createList('CSV');
+  store.addItem(list.id, { name: '=HYPERLINK("x")', qty: 1.5, unit: 'kg', estimatedPrice: 8.99, category: 'Hortifruti' });
+  const csv = store.exportCSV(list.id);
+  assert.ok(csv.includes(`"'=HYPERLINK(""x"")";1,5;kg;"Hortifruti";8,99;8,99;Nao`));
+});

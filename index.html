@@ -2,13 +2,26 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="Lista de compras inteligente com entrada por voz, teto de gastos e modo mercado. Funciona offline.">
   <meta name="theme-color" content="#f43f5e">
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>SuperLista Pro 🛒 — Gerenciador Inteligente de Compras</title>
   
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script>
+    // Os utilitários dark: seguem o tema escolhido no app (classe .dark), não o tema do sistema
+    if (window.tailwind) tailwind.config = { darkMode: 'class' };
+    try {
+      const saved = JSON.parse(localStorage.getItem('superlista_v2_data') || '{}');
+      if (saved.theme === 'dark') document.documentElement.classList.add('dark');
+    } catch (e) {}
+  </script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -52,27 +65,27 @@
 
             <!-- Seletor de Listas Múltiplas -->
             <div class="relative flex items-center">
-              <select id="list-selector" title="Alternar Lista" class="bg-white/20 hover:bg-white/30 text-white text-xs sm:text-sm font-semibold px-3 py-2 pr-8 rounded-xl border border-white/30 backdrop-blur-md cursor-pointer focus:outline-none transition-all appearance-none">
+              <select id="list-selector" title="Alternar Lista" aria-label="Lista ativa" class="bg-white/20 hover:bg-white/30 text-white text-xs sm:text-sm font-semibold px-3 py-2 pr-8 rounded-xl border border-white/30 backdrop-blur-md cursor-pointer focus:outline-none transition-all appearance-none">
                 <!-- Preenchido dinamicamente -->
               </select>
               <i class="fa-solid fa-chevron-down absolute right-2.5 text-xs pointer-events-none opacity-80"></i>
             </div>
 
             <!-- Botão Adicionar/Gerenciar Listas -->
-            <button id="btn-manage-lists" title="Gerenciar Listas" class="bg-white/20 hover:bg-white/30 text-white text-xs p-2.5 rounded-xl border border-white/25 backdrop-blur-md active:scale-95 transition-all">
+            <button id="btn-manage-lists" title="Gerenciar Listas" aria-label="Gerenciar listas" class="bg-white/20 hover:bg-white/30 text-white text-xs p-2.5 rounded-xl border border-white/25 backdrop-blur-md active:scale-95 transition-all">
               <i class="fa-solid fa-folder-plus text-sm"></i>
             </button>
 
             <!-- Menu Exportar e Backup -->
             <div class="relative">
-              <button id="btn-export-menu" title="Compartilhar e Backup" class="bg-white/20 hover:bg-white/30 text-white text-xs p-2.5 rounded-xl border border-white/25 backdrop-blur-md active:scale-95 transition-all">
+              <button id="btn-export-menu" title="Compartilhar e Backup" aria-label="Compartilhar e backup" aria-haspopup="true" aria-expanded="false" class="bg-white/20 hover:bg-white/30 text-white text-xs p-2.5 rounded-xl border border-white/25 backdrop-blur-md active:scale-95 transition-all">
                 <i class="fa-solid fa-arrow-up-from-bracket text-sm"></i>
               </button>
               
               <!-- Dropdown Exportar -->
               <div id="export-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-700 py-2 z-50 text-xs">
                 <button id="btn-export-whatsapp" class="w-full text-left px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2">
-                  <i class="fa-brands fa-whatsapp text-emerald-500 text-sm"></i> Copiar para WhatsApp
+                  <i class="fa-brands fa-whatsapp text-emerald-500 text-sm"></i> Enviar para WhatsApp
                 </button>
                 <button id="btn-export-csv" class="w-full text-left px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2">
                   <i class="fa-solid fa-file-csv text-blue-500 text-sm"></i> Exportar Planilha (CSV)
@@ -88,12 +101,12 @@
             </div>
 
             <!-- Alternar Som -->
-            <button id="btn-toggle-sound" title="Ativar/Desativar Sons" class="bg-white/20 hover:bg-white/30 text-white text-xs p-2.5 rounded-xl border border-white/25 backdrop-blur-md active:scale-95 transition-all">
+            <button id="btn-toggle-sound" title="Ativar/Desativar Sons" aria-label="Ativar ou desativar sons" class="bg-white/20 hover:bg-white/30 text-white text-xs p-2.5 rounded-xl border border-white/25 backdrop-blur-md active:scale-95 transition-all">
               <i id="sound-icon" class="fa-solid fa-volume-high text-sm"></i>
             </button>
 
             <!-- Seletor de Tema -->
-            <select id="theme-selector" title="Tema Visual" class="bg-white/20 hover:bg-white/30 text-white text-xs px-2.5 py-2 rounded-xl border border-white/25 backdrop-blur-md cursor-pointer focus:outline-none transition-all">
+            <select id="theme-selector" title="Tema Visual" aria-label="Tema visual" class="bg-white/20 hover:bg-white/30 text-white text-xs px-2.5 py-2 rounded-xl border border-white/25 backdrop-blur-md cursor-pointer focus:outline-none transition-all">
               <option value="sunset" class="text-slate-800" selected>🌅 Pôr do Sol</option>
               <option value="emerald" class="text-slate-800">🌿 Esmeralda</option>
               <option value="nordic" class="text-slate-800">🌊 Nórdico</option>
@@ -134,7 +147,7 @@
           <div class="bg-black/20 backdrop-blur-md rounded-2xl p-3 border border-white/10 relative group">
             <div class="flex items-center justify-between mb-1">
               <span class="text-white/80 text-[11px] font-semibold uppercase tracking-wider">Teto de Gastos</span>
-              <button id="btn-edit-budget-quick" title="Alterar teto" class="text-white/70 hover:text-white text-xs">
+              <button id="btn-edit-budget-quick" title="Alterar teto" aria-label="Alterar teto de gastos" class="text-white/70 hover:text-white text-xs">
                 <i class="fa-solid fa-pen-to-square"></i>
               </button>
             </div>
@@ -148,9 +161,10 @@
 
         <!-- Barra de Progresso Visual de Conclusão -->
         <div class="mt-4">
-          <div class="w-full bg-black/25 h-2.5 rounded-full overflow-hidden p-0.5">
+          <div class="w-full bg-black/25 h-2.5 rounded-full overflow-hidden p-0.5" role="progressbar" aria-label="Progresso da compra" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
             <div id="main-progress-bar" class="h-full bg-white rounded-full transition-all duration-300 w-0"></div>
           </div>
+          <p id="metric-projected" class="hidden mt-2 text-[11px] text-white/85 font-medium"></p>
         </div>
 
       </div>
@@ -169,8 +183,10 @@
             <input 
               type="text" 
               id="item-quick-input" 
-              placeholder="Digite ou fale: Ex: '1,5 kg de tomate', '3x sabonete', 'café'..."
+              placeholder="Ex: '2 kg de tomate', '3x sabonete', 'café R$ 18,90'..."
+              aria-label="Adicionar item"
               autocomplete="off"
+              enterkeyhint="done"
               required
               class="theme-input w-full pl-10 pr-12 py-3 rounded-2xl text-sm font-medium border transition-all focus:outline-none"
             />
@@ -179,7 +195,9 @@
             <button 
               type="button" 
               id="btn-voice-input" 
-              title="Falar item por comando de voz" 
+              title="Falar item por comando de voz"
+              aria-label="Adicionar item por voz"
+              aria-pressed="false"
               class="absolute inset-y-1.5 right-1.5 px-3 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs flex items-center justify-center transition-all cursor-pointer"
             >
               <i class="fa-solid fa-microphone text-sm"></i>
@@ -191,7 +209,9 @@
             <button 
               type="button" 
               id="btn-toggle-details" 
-              title="Ajustar preço, unidade ou corredor manualmente" 
+              title="Ajustar preço, unidade ou corredor manualmente"
+              aria-controls="details-panel"
+              aria-expanded="false"
               class="px-3.5 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 transition-all whitespace-nowrap"
             >
               <i class="fa-solid fa-sliders"></i>
@@ -208,14 +228,17 @@
           </div>
         </div>
 
+        <!-- Prévia do que o parser entendeu -->
+        <div id="parse-preview" class="hidden flex flex-wrap items-center gap-1.5 text-[11px] px-1" aria-live="polite"></div>
+
         <!-- Painel Expansível de Detalhes Manuais -->
         <div id="details-panel" class="hidden pt-3 border-t border-slate-100 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
           <div>
-            <label class="block font-semibold opacity-75 mb-1">Quantidade</label>
-            <input type="number" id="detail-qty" step="any" min="0.1" value="1" class="theme-input w-full p-2 rounded-xl border focus:outline-none">
+            <label for="detail-qty" class="block font-semibold opacity-75 mb-1">Quantidade</label>
+            <input type="number" id="detail-qty" step="any" min="0.001" value="1" inputmode="decimal" class="theme-input w-full p-2 rounded-xl border focus:outline-none">
           </div>
           <div>
-            <label class="block font-semibold opacity-75 mb-1">Unidade</label>
+            <label for="detail-unit" class="block font-semibold opacity-75 mb-1">Unidade</label>
             <select id="detail-unit" class="theme-input w-full p-2 rounded-xl border focus:outline-none">
               <option value="un">un (Unidade)</option>
               <option value="kg">kg (Quilograma)</option>
@@ -228,11 +251,11 @@
             </select>
           </div>
           <div>
-            <label class="block font-semibold opacity-75 mb-1">Preço Est. (R$)</label>
-            <input type="number" id="detail-price" step="0.01" min="0" placeholder="0,00" class="theme-input w-full p-2 rounded-xl border focus:outline-none">
+            <label for="detail-price" class="block font-semibold opacity-75 mb-1">Preço unitário est. (R$)</label>
+            <input type="text" id="detail-price" inputmode="decimal" placeholder="0,00" class="theme-input w-full p-2 rounded-xl border focus:outline-none">
           </div>
           <div>
-            <label class="block font-semibold opacity-75 mb-1">Corredor / Categoria</label>
+            <label for="detail-category" class="block font-semibold opacity-75 mb-1">Corredor / Categoria</label>
             <select id="detail-category" class="theme-input w-full p-2 rounded-xl border focus:outline-none">
               <option value="Hortifruti">🍎 Hortifruti</option>
               <option value="Padaria">🍞 Padaria</option>
@@ -242,7 +265,7 @@
               <option value="Bebidas">🥤 Bebidas</option>
               <option value="Limpeza & Higiene">🧼 Limpeza & Higiene</option>
               <option value="Pet & Bazar">🐾 Pet & Bazar</option>
-              <option value="Outros">🛒 Outros</option>
+              <option value="Outros" selected>🛒 Outros</option>
             </select>
           </div>
         </div>
@@ -266,10 +289,10 @@
     <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-5">
       
       <!-- Abas de Status -->
-      <div class="flex items-center bg-slate-200/60 dark:bg-slate-800/80 p-1 rounded-2xl text-xs font-semibold">
-        <button class="status-tab px-3 py-1.5 rounded-xl bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white transition-all" data-status="all">Todos</button>
-        <button class="status-tab px-3 py-1.5 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all" data-status="pending">Pendentes</button>
-        <button class="status-tab px-3 py-1.5 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all" data-status="checked">No Carrinho</button>
+      <div class="flex items-center bg-slate-200/60 dark:bg-slate-800/80 p-1 rounded-2xl text-xs font-semibold" role="tablist" aria-label="Filtrar por status">
+        <button class="status-tab px-3 py-1.5 rounded-xl bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white transition-all" data-status="all" role="tab" aria-selected="true">Todos</button>
+        <button class="status-tab px-3 py-1.5 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all" data-status="pending" role="tab" aria-selected="false">Pendentes</button>
+        <button class="status-tab px-3 py-1.5 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all" data-status="checked" role="tab" aria-selected="false">No Carrinho</button>
       </div>
 
       <!-- Alternador de Visão (Corredor vs Lista Simples) e Busca -->
@@ -289,13 +312,15 @@
           <input 
             type="text" 
             id="search-input" 
+            type="search"
+            aria-label="Filtrar itens"
             placeholder="Filtrar itens..." 
             class="theme-input w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border focus:outline-none"
           />
         </div>
 
         <!-- Botão Limpar Comprados -->
-        <button id="btn-clear-checked" title="Limpar itens marcados como comprados" class="px-3 py-2 rounded-xl text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all">
+        <button id="btn-clear-checked" title="Limpar itens marcados como comprados" aria-label="Limpar itens comprados" class="px-3 py-2 rounded-xl text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all">
           <i class="fa-solid fa-trash-can"></i>
         </button>
       </div>
@@ -312,14 +337,14 @@
       <div class="w-20 h-20 mx-auto mb-4 bg-slate-100 dark:bg-slate-800 rounded-3xl flex items-center justify-center text-3xl text-slate-400">
         <i class="fa-solid fa-basket-shopping"></i>
       </div>
-      <h3 class="text-base font-bold text-slate-700 dark:text-slate-200 mb-1">Nenhum item encontrado</h3>
-      <p class="text-xs text-slate-500 max-w-sm mx-auto">Sua lista está limpa ou nenhum produto coincide com a sua busca atual. Adicione um novo item acima!</p>
+      <h3 id="empty-state-title" class="text-base font-bold text-slate-700 dark:text-slate-200 mb-1">Nenhum item encontrado</h3>
+      <p id="empty-state-text" class="text-xs text-slate-500 max-w-sm mx-auto">Adicione um novo item acima!</p>
     </div>
 
   </div>
 
   <!-- OVERLAY: MODO MERCADO (In-Store Shopping Focus Mode) -->
-  <div id="shopping-mode-overlay" class="hidden fixed inset-0 z-50 overflow-y-auto flex flex-col">
+  <div id="shopping-mode-overlay" class="hidden fixed inset-0 z-50 overflow-y-auto flex flex-col" role="dialog" aria-modal="true" aria-labelledby="shopping-mode-title">
     <!-- Top Bar do Modo Mercado -->
     <div class="bg-slate-900 border-b border-slate-800 px-4 py-4 flex items-center justify-between sticky top-0 z-20">
       <div class="flex items-center space-x-3">
@@ -336,10 +361,16 @@
         </div>
       </div>
 
-      <button id="btn-exit-shopping-mode" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-all">
-        <i class="fa-solid fa-xmark mr-1.5"></i> Sair do Modo
-      </button>
+      <div class="flex items-center gap-2">
+        <button id="btn-shopping-hide-checked" aria-pressed="false" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all">
+          <i class="fa-solid fa-eye-slash sm:mr-1.5"></i><span class="hidden sm:inline">Ocultar pegos</span>
+        </button>
+        <button id="btn-exit-shopping-mode" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-all">
+          <i class="fa-solid fa-xmark mr-1.5"></i> Sair
+        </button>
+      </div>
     </div>
+    <div class="h-1 bg-slate-800 sticky top-[68px] z-20"><div id="shopping-progress-bar" class="h-full bg-emerald-500 transition-all duration-300" style="width:0%"></div></div>
 
     <!-- Conteúdo Central dos Itens do Modo Mercado -->
     <div class="flex-1 max-w-3xl w-full mx-auto p-4 pb-28">
@@ -349,7 +380,7 @@
     </div>
 
     <!-- Barra Inferior Fixa do Modo Mercado -->
-    <div class="fixed bottom-0 inset-x-0 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 p-4 z-20">
+    <div class="fixed bottom-0 inset-x-0 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] z-20">
       <div class="max-w-3xl mx-auto flex items-center justify-between">
         <div>
           <span class="text-[11px] uppercase font-bold text-slate-400 block">Total no Carrinho</span>
@@ -357,6 +388,7 @@
             <span id="shopping-total-spent" class="text-xl sm:text-2xl font-black text-white">R$ 0,00</span>
             <span id="shopping-budget-target" class="text-xs text-slate-400 font-medium">/ Teto: R$ 0,00</span>
           </div>
+          <span id="shopping-projected" class="text-[11px] text-slate-500"></span>
         </div>
 
         <button id="btn-shopping-finish" class="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs sm:text-sm shadow-lg shadow-emerald-500/20 active:scale-95 transition-all">
@@ -367,18 +399,18 @@
   </div>
 
   <!-- MODAL: Gerenciamento de Listas Múltiplas -->
-  <div id="modal-manage-lists" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+  <div id="modal-manage-lists" role="dialog" aria-modal="true" aria-label="Minhas Listas de Compras" class="modal-backdrop hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="theme-card bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
       <div class="flex items-center justify-between">
         <h3 class="text-lg font-bold">Minhas Listas de Compras</h3>
-        <button class="modal-close-btn text-slate-400 hover:text-slate-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+        <button type="button" aria-label="Fechar" class="modal-close-btn text-slate-400 hover:text-slate-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
       <!-- Formulário Nova Lista -->
       <form id="form-create-list" class="space-y-3 pt-2">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <input type="text" id="new-list-title" placeholder="Nome (Ex: Churrasco, Farmácia...)" required class="theme-input p-2.5 rounded-xl border text-xs focus:outline-none sm:col-span-1">
-          <input type="number" id="new-list-budget" placeholder="Teto R$ (Opcional)" step="0.01" class="theme-input p-2.5 rounded-xl border text-xs focus:outline-none sm:col-span-1">
+          <input type="text" id="new-list-title" aria-label="Nome da lista" placeholder="Nome (Ex: Churrasco, Farmácia...)" required class="theme-input p-2.5 rounded-xl border text-xs focus:outline-none sm:col-span-1">
+          <input type="text" inputmode="decimal" id="new-list-budget" aria-label="Teto de gastos" placeholder="Teto R$ (Opcional)" class="theme-input p-2.5 rounded-xl border text-xs focus:outline-none sm:col-span-1">
         </div>
         <button type="submit" class="theme-accent-btn w-full py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-md">
           <i class="fa-solid fa-plus"></i> Criar Nova Lista
@@ -388,24 +420,24 @@
       <hr class="border-slate-100 dark:border-slate-800">
 
       <!-- Listagem das listas existentes -->
-      <div id="lists-manager-container" class="space-y-2 max-h-60 overflow-y-auto">
+      <div id="lists-manager-container" class="space-y-2 max-h-72 overflow-y-auto">
         <!-- Preenchido via JS -->
       </div>
     </div>
   </div>
 
   <!-- MODAL: Backup JSON (Exportar / Importar) -->
-  <div id="modal-backup" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+  <div id="modal-backup" role="dialog" aria-modal="true" aria-label="Backup" class="modal-backdrop hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="theme-card bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
       <div class="flex items-center justify-between">
         <h3 class="text-lg font-bold">Backup & Sincronização (JSON)</h3>
-        <button class="modal-close-btn text-slate-400 hover:text-slate-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+        <button type="button" aria-label="Fechar" class="modal-close-btn text-slate-400 hover:text-slate-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
       <p class="text-xs text-slate-500">Exporte todos os seus dados e listas como arquivo JSON seguro ou restaure um backup anterior.</p>
 
       <div class="space-y-2">
-        <textarea id="backup-json-textarea" rows="6" class="theme-input w-full p-3 rounded-xl border font-mono text-xs focus:outline-none" placeholder="Cole o código JSON do seu backup aqui para restaurar..."></textarea>
+        <textarea id="backup-json-textarea" aria-label="Conteúdo do backup JSON" rows="6" class="theme-input w-full p-3 rounded-xl border font-mono text-xs focus:outline-none" placeholder="Cole o código JSON do seu backup aqui para restaurar..."></textarea>
       </div>
 
       <div class="flex flex-wrap items-center justify-end gap-2 pt-2">
@@ -415,6 +447,10 @@
         <button id="btn-download-backup-json" class="px-3.5 py-2 rounded-xl bg-blue-500 text-white text-xs font-semibold hover:bg-blue-600 transition-all">
           <i class="fa-solid fa-download mr-1"></i> Baixar Arquivo .json
         </button>
+        <input type="file" id="backup-file-input" accept="application/json,.json" class="hidden">
+        <button id="btn-pick-backup-file" class="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-semibold hover:bg-slate-200 transition-all">
+          <i class="fa-solid fa-folder-open mr-1"></i> Abrir Arquivo
+        </button>
         <button id="btn-restore-backup-json" class="theme-accent-btn px-4 py-2 rounded-xl text-xs font-bold transition-all">
           <i class="fa-solid fa-upload mr-1"></i> Restaurar Dados
         </button>
@@ -423,27 +459,27 @@
   </div>
 
   <!-- MODAL: Editar Item -->
-  <div id="modal-edit-item" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+  <div id="modal-edit-item" role="dialog" aria-modal="true" aria-label="Editar Item" class="modal-backdrop hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="theme-card bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
       <div class="flex items-center justify-between">
         <h3 class="text-lg font-bold">Editar Item</h3>
-        <button class="modal-close-btn text-slate-400 hover:text-slate-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+        <button type="button" aria-label="Fechar" class="modal-close-btn text-slate-400 hover:text-slate-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
       <form id="form-edit-item" class="space-y-3">
         <input type="hidden" id="edit-item-id">
         <div>
-          <label class="block text-xs font-semibold opacity-75 mb-1">Nome do Produto</label>
+          <label for="edit-item-name" class="block text-xs font-semibold opacity-75 mb-1">Nome do Produto</label>
           <input type="text" id="edit-item-name" required class="theme-input w-full p-2.5 rounded-xl border text-xs focus:outline-none">
         </div>
 
         <div class="grid grid-cols-2 gap-2">
           <div>
-            <label class="block text-xs font-semibold opacity-75 mb-1">Quantidade</label>
-            <input type="number" id="edit-item-qty" step="any" min="0.1" required class="theme-input w-full p-2.5 rounded-xl border text-xs focus:outline-none">
+            <label for="edit-item-qty" class="block text-xs font-semibold opacity-75 mb-1">Quantidade</label>
+            <input type="number" id="edit-item-qty" step="any" min="0.001" inputmode="decimal" required class="theme-input w-full p-2.5 rounded-xl border text-xs focus:outline-none">
           </div>
           <div>
-            <label class="block text-xs font-semibold opacity-75 mb-1">Unidade</label>
+            <label for="edit-item-unit" class="block text-xs font-semibold opacity-75 mb-1">Unidade</label>
             <select id="edit-item-unit" class="theme-input w-full p-2.5 rounded-xl border text-xs focus:outline-none">
               <option value="un">un</option>
               <option value="kg">kg</option>
@@ -459,17 +495,17 @@
 
         <div class="grid grid-cols-2 gap-2">
           <div>
-            <label class="block text-xs font-semibold opacity-75 mb-1">Preço Est. (R$)</label>
-            <input type="number" id="edit-item-est-price" step="0.01" min="0" class="theme-input w-full p-2.5 rounded-xl border text-xs focus:outline-none">
+            <label for="edit-item-est-price" class="block text-xs font-semibold opacity-75 mb-1">Preço unit. est. (R$)</label>
+            <input type="text" inputmode="decimal" id="edit-item-est-price" placeholder="0,00" class="theme-input w-full p-2.5 rounded-xl border text-xs focus:outline-none">
           </div>
           <div>
-            <label class="block text-xs font-semibold opacity-75 mb-1">Preço Real no Caixa (R$)</label>
-            <input type="number" id="edit-item-act-price" step="0.01" min="0" class="theme-input w-full p-2.5 rounded-xl border text-xs focus:outline-none">
+            <label for="edit-item-act-price" class="block text-xs font-semibold opacity-75 mb-1">Preço unit. real (R$)</label>
+            <input type="text" inputmode="decimal" id="edit-item-act-price" placeholder="= estimado" class="theme-input w-full p-2.5 rounded-xl border text-xs focus:outline-none">
           </div>
         </div>
 
         <div>
-          <label class="block text-xs font-semibold opacity-75 mb-1">Corredor / Categoria</label>
+          <label for="edit-item-category" class="block text-xs font-semibold opacity-75 mb-1">Corredor / Categoria</label>
           <select id="edit-item-category" class="theme-input w-full p-2.5 rounded-xl border text-xs focus:outline-none">
             <option value="Hortifruti">🍎 Hortifruti</option>
             <option value="Padaria">🍞 Padaria</option>
@@ -484,7 +520,7 @@
         </div>
 
         <div>
-          <label class="block text-xs font-semibold opacity-75 mb-1">Notas / Marca de preferência</label>
+          <label for="edit-item-notes" class="block text-xs font-semibold opacity-75 mb-1">Notas / Marca de preferência</label>
           <input type="text" id="edit-item-notes" placeholder="Ex: Marca X, sem glúten..." class="theme-input w-full p-2.5 rounded-xl border text-xs focus:outline-none">
         </div>
 
@@ -493,6 +529,55 @@
           <button type="submit" class="theme-accent-btn px-5 py-2.5 rounded-xl text-xs font-bold">Salvar Alterações</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Preço no caixa (Modo Mercado) -->
+  <div id="modal-price" role="dialog" aria-modal="true" aria-labelledby="price-item-name" class="modal-backdrop hidden fixed inset-0 z-[55] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
+    <form id="form-price" class="bg-slate-900 text-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-700 space-y-4">
+      <input type="hidden" id="price-item-id">
+      <div class="flex items-start justify-between gap-3">
+        <div class="min-w-0">
+          <p class="text-[11px] uppercase font-bold text-slate-400">Preço na etiqueta</p>
+          <h3 id="price-item-name" class="text-lg font-bold truncate"></h3>
+          <p id="price-item-hint" class="text-xs text-slate-400"></p>
+        </div>
+        <button type="button" aria-label="Fechar" class="modal-close-btn text-slate-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="relative">
+        <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400 font-bold">R$</span>
+        <input id="price-input" type="text" inputmode="decimal" autocomplete="off" aria-label="Preço em reais" placeholder="0,00" class="w-full pl-12 pr-4 py-4 rounded-2xl bg-slate-800 border border-slate-700 text-2xl font-black focus:outline-none focus:border-emerald-500">
+      </div>
+      <div id="price-mode-wrapper" class="flex items-center gap-2 text-xs text-slate-300">
+        <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="price-mode" id="price-mode-unit" checked> Preço por unidade</label>
+        <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="price-mode" id="price-mode-total"> Preço total</label>
+      </div>
+      <button type="submit" class="w-full py-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-600 font-bold text-sm">
+        <i class="fa-solid fa-cart-plus mr-1.5"></i> Salvar e marcar como pego
+      </button>
+    </form>
+  </div>
+
+  <!-- MODAL: Concluir compra -->
+  <div id="modal-finish" role="dialog" aria-modal="true" aria-labelledby="finish-title" class="modal-backdrop hidden fixed inset-0 z-[55] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
+    <div class="theme-card bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 id="finish-title" class="text-lg font-bold">🎉 Concluir compra</h3>
+        <button type="button" aria-label="Fechar" class="modal-close-btn text-slate-400 hover:text-slate-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div id="finish-summary"></div>
+      <p class="text-xs font-semibold opacity-70">O que fazer com a lista?</p>
+      <div class="space-y-2">
+        <button type="button" id="btn-finish-uncheck" class="theme-accent-btn w-full py-3 rounded-2xl text-xs font-bold text-left px-4">
+          <i class="fa-solid fa-rotate mr-2"></i>Desmarcar tudo <span class="opacity-80 font-medium">— reusar na próxima compra</span>
+        </button>
+        <button type="button" id="btn-finish-clear" class="w-full py-3 rounded-2xl text-xs font-bold text-left px-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700">
+          <i class="fa-solid fa-broom mr-2"></i>Remover os itens comprados
+        </button>
+        <button type="button" id="btn-finish-keep" class="w-full py-3 rounded-2xl text-xs font-bold text-left px-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700">
+          <i class="fa-solid fa-check mr-2"></i>Manter como está
+        </button>
+      </div>
     </div>
   </div>
 
